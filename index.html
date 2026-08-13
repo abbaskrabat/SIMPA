@@ -1,3 +1,4 @@
+<!-- 2 -->
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -16,7 +17,7 @@
             theme: {
                 extend: {
                     fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: { primary: '#10b981', secondary: '#047857' } // Tema Zamrud (Emerald) untuk nuansa Islami
+                    colors: { primary: '#10b981', secondary: '#047857' }
                 }
             }
         }
@@ -48,7 +49,7 @@
             <!-- Form Login -->
             <form id="login-form" class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Username (NISM untuk Santri)</label>
                     <input type="text" id="log-username" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
                 </div>
                 <div>
@@ -73,7 +74,7 @@
             <!-- Form Register (Hidden by default) -->
             <form id="register-form" class="space-y-4 hidden">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Username Baru</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Username Baru (Gunakan NISM untuk Santri)</label>
                     <input type="text" id="reg-username" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
                 </div>
                 <div>
@@ -149,7 +150,6 @@
 
             <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-4 md:p-6" id="main-content">
                 
-                <!-- Halaman Dashboard -->
                 <div id="page-dashboard" class="page-view">
                     <h2 class="text-2xl font-bold text-gray-800 mb-6">Dashboard</h2>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -163,10 +163,10 @@
                                 <i class="fas fa-users text-xl"></i>
                             </div>
                         </div>
-                        <!-- Kartu Santri Aktif -->
+                        <!-- Kartu Santri Aktif Pondok -->
                         <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500 flex items-center justify-between">
                             <div>
-                                <p class="text-sm text-gray-500 font-medium mb-1">Santri Aktif</p>
+                                <p class="text-sm text-gray-500 font-medium mb-1">Santri Aktif (Pondok)</p>
                                 <h3 class="text-3xl font-bold text-gray-800" id="dash-count-aktif">0</h3>
                             </div>
                             <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-500">
@@ -190,11 +190,10 @@
                     </div>
                 </div>
 
-                <!-- Halaman Data Santri -->
                 <div id="page-santri" class="page-view hidden">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                         <h2 class="text-2xl font-bold text-gray-800">Manajemen Data Santri</h2>
-                        <button onclick="SantriController.openModal()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded-lg shadow transition-colors flex items-center">
+                        <button id="btn-add-santri" onclick="SantriController.openModal()" class="admin-pengurus-only bg-primary hover:bg-secondary text-white px-4 py-2 rounded-lg shadow transition-colors flex items-center">
                             <i class="fas fa-plus mr-2"></i> Tambah Data Santri
                         </button>
                     </div>
@@ -220,7 +219,7 @@
                                         <th class="px-6 py-3 font-medium">Nama Lengkap</th>
                                         <th class="px-6 py-3 font-medium">Jenis Kelamin</th>
                                         <th class="px-6 py-3 font-medium">Asal Daerah</th>
-                                        <th class="px-6 py-3 font-medium">Status</th>
+                                        <th class="px-6 py-3 font-medium">Status Keaktifan (Pondok)</th>
                                         <th class="px-6 py-3 font-medium text-center">Aksi</th>
                                     </tr>
                                 </thead>
@@ -242,7 +241,6 @@
                     </div>
                 </div>
 
-                <!-- Halaman Kelola User (Khusus Admin) -->
                 <div id="page-users" class="page-view hidden admin-only">
                     <h2 class="text-2xl font-bold text-gray-800 mb-6">Manajemen Akses Pengguna</h2>
                     <div class="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -297,7 +295,7 @@
                     <div>
                         <h4 class="text-primary font-semibold border-b border-gray-200 pb-2 mb-4"><i class="fas fa-id-card mr-2"></i>1. Data Diri Utama</h4>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">NISM (No. Induk Siswa Madrasah)</label><input type="text" id="S_NISM" class="w-full p-2 border rounded text-sm focus:border-primary outline-none"></div>
+                            <div><label class="block text-xs font-medium text-gray-700 mb-1">NISM (No. Induk Siswa Madrasah)*</label><input type="text" id="S_NISM" required class="w-full p-2 border rounded text-sm focus:border-primary outline-none"></div>
                             <div><label class="block text-xs font-medium text-gray-700 mb-1">Nama Lengkap*</label><input type="text" id="S_Nama_Lengkap" required class="w-full p-2 border rounded text-sm focus:border-primary outline-none uppercase"></div>
                             <div><label class="block text-xs font-medium text-gray-700 mb-1">Nama Panggilan</label><input type="text" id="S_Nama_Panggilan" class="w-full p-2 border rounded text-sm focus:border-primary outline-none"></div>
                             
@@ -318,11 +316,21 @@
                     <div>
                         <h4 class="text-primary font-semibold border-b border-gray-200 pb-2 mb-4"><i class="fas fa-book mr-2"></i>2. Pendidikan & Kepesantrenan</h4>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Status Belajar (Pondok)</label>
-                                <select id="S_Status_Belajar" class="w-full p-2 border rounded text-sm bg-white"><option value="Aktif">Aktif</option><option value="Lulus">Lulus</option></select>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700 mb-1">Status Belajar (Sekolah Formal)</label>
+                                <select id="S_Status_Belajar" class="w-full p-2 border rounded text-sm bg-white">
+                                    <option value="Aktif">Aktif Sekolah</option>
+                                    <option value="Lulus">Lulus Sekolah</option>
+                                    <option value="Keluar">Keluar / Putus Sekolah</option>
+                                </select>
                             </div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Status Keaktifan Harian</label>
-                                <select id="S_Status_Keaktifan" class="w-full p-2 border rounded text-sm bg-white"><option value="Aktif">Aktif</option><option value="Mangkir">Mangkir</option><option value="Boyong">Boyong</option></select>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700 mb-1">Status Keaktifan (Pondok)*</label>
+                                <select id="S_Status_Keaktifan" required class="w-full p-2 border rounded text-sm bg-white font-medium text-emerald-700">
+                                    <option value="Aktif">Aktif (Ada & Mengikuti Kegiatan Pondok)</option>
+                                    <option value="Lulus">Lulus (Tamat Pondok)</option>
+                                    <option value="Non-Aktif">Non-Aktif / Boyong (Tidak di Pondok)</option>
+                                </select>
                             </div>
                             <div><label class="block text-xs font-medium text-gray-700 mb-1">Jenjang Pendidikan Formal</label>
                                 <select id="S_Jenjang_Pendidikan" class="w-full p-2 border rounded text-sm bg-white">
@@ -429,7 +437,9 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Tingkat Akses (Role)</label>
                         <select id="U_Role" class="w-full p-2 border rounded outline-none focus:border-primary">
-                            <option value="user">User Standar (Hanya Edit Data)</option>
+                            <option value="santri">Santri (Hanya Data Sendiri)</option>
+                            <option value="guru">Guru (Hanya Lihat Data)</option>
+                            <option value="pengurus">Pengurus (CRUD Data Santri)</option>
                             <option value="admin">Administrator (Akses Penuh)</option>
                         </select>
                     </div>
@@ -452,19 +462,17 @@
         </div>
     </div>
 
-
     <script>
         // ==========================================
-        // GANTI URL DI BAWAH INI DENGAN WEB APP URL ANDA!
+        // URL WEB APP GOOGLE APPS SCRIPT ANDA
         // ==========================================
-        // const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwYOUR_APP_SCRIPT_ID_HERE/exec'; 
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_pkjlHNprg236tQQFpH2Jvz7WWu4xTeL8oI9WfE1OR697amaAGKqrEIFsv7jYpEI/exec'; 
-        const IDLE_TIMEOUT = 10 * 60 * 1000; // Auto-logout setelah 10 Menit tidak aktif
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwYOUR_APP_SCRIPT_ID_HERE/exec'; 
+        const IDLE_TIMEOUT = 5 * 60 * 1000; // Auto-logout setelah 5 Menit tidak aktif
 
         // State Global Aplikasi
         const State = {
             currentUser: null,
-            isDemo: false, // Mode tanpa server jika SCRIPT_URL belum ada
+            isDemo: false,
             santri: [],
             users: [],
             lastActivity: Date.now()
@@ -484,7 +492,6 @@
 
         const API = {
             async post(action, data = {}) {
-                // Jika Mode Demo dicentang, jangan hit server beneran
                 if (State.isDemo) return MockAPI.handle(action, data);
 
                 try {
@@ -493,7 +500,6 @@
                         body: JSON.stringify({ action, data })
                     });
                     
-                    // Apps Script terkadang mereturn HTML jika error auth
                     const textRes = await response.text(); 
                     let resData;
                     try {
@@ -517,14 +523,17 @@
         const MockAPI = {
             delay: (ms) => new Promise(resolve => setTimeout(resolve, ms)),
             async handle(action, data) {
-                await this.delay(800); // Simulasi delay internet
+                await this.delay(600);
                 
                 if (action === 'login') {
                     if (data.username === 'admin' && data.password === 'admin123') return { id: 'USR001', username: 'admin', role: 'admin' };
-                    if (data.username === 'user' && data.password === 'user123') return { id: 'USR002', username: 'user', role: 'user' };
-                    throw new Error("Username/Password Demo salah. (Coba: admin / admin123)");
+                    if (data.username === 'pengurus' && data.password === 'pengurus123') return { id: 'USR002', username: 'pengurus', role: 'pengurus' };
+                    if (data.username === 'guru' && data.password === 'guru123') return { id: 'USR003', username: 'guru', role: 'guru' };
+                    if (data.username === '1234567890' && data.password === 'santri123') return { id: 'USR004', username: '1234567890', role: 'santri' };
+                    
+                    throw new Error("Username/Password Demo salah.\n(Demo: admin, pengurus, guru, 1234567890)\n(Password: [role]123)");
                 }
-                if (action === 'register') return { message: "Registrasi Demo berhasil! (Tidak akan tersimpan di server nyata)" };
+                if (action === 'register') return { message: "Registrasi Demo berhasil! (Status: Non-Aktif)" };
                 
                 if (action === 'getSantri') return [...State.santri];
                 if (action === 'createSantri') {
@@ -556,19 +565,20 @@
             },
             initDemoData() {
                 State.santri = [
-                    { ID_Santri: "SNTDEMO001", NISM: "1234567890", Nama_Lengkap: "Ahmad Fulan Al Jawi", Jenis_Kelamin: "Laki-laki", Kabupaten: "Kediri", Status_Belajar: "Aktif", NIK: "3506123456789012", No_KK: "3506987654321098" },
-                    { ID_Santri: "SNTDEMO002", NISM: "0987654321", Nama_Lengkap: "Siti Aisyah", Jenis_Kelamin: "Perempuan", Kabupaten: "Jombang", Status_Belajar: "Aktif", NIK: "3517123456789012", No_KK: "3517987654321098" }
+                    { ID_Santri: "SNTDEMO001", NISM: "1234567890", Nama_Lengkap: "Ahmad Fulan Al Jawi", Jenis_Kelamin: "Laki-laki", Kabupaten: "Kediri", Status_Belajar: "Aktif", Status_Keaktifan: "Aktif", NIK: "3506123456789012", No_KK: "3506987654321098" },
+                    { ID_Santri: "SNTDEMO002", NISM: "0987654321", Nama_Lengkap: "Siti Aisyah", Jenis_Kelamin: "Perempuan", Kabupaten: "Jombang", Status_Belajar: "Lulus", Status_Keaktifan: "Non-Aktif", NIK: "3517123456789012", No_KK: "3517987654321098" }
                 ];
                 State.users = [
                     { ID_User: "USR001", Username: "admin", Role: "admin", Status: "Aktif" },
-                    { ID_User: "USR002", Username: "user", Role: "user", Status: "Aktif" }
+                    { ID_User: "USR002", Username: "pengurus", Role: "pengurus", Status: "Aktif" },
+                    { ID_User: "USR003", Username: "guru", Role: "guru", Status: "Aktif" },
+                    { ID_User: "USR004", Username: "1234567890", Role: "santri", Status: "Aktif" }
                 ];
             }
         };
 
         const AuthController = {
             init() {
-                // Cek token/sesi yang tersimpan di browser
                 const sessionStr = localStorage.getItem('sim_amaanah_session');
                 if (sessionStr) {
                     try {
@@ -581,7 +591,7 @@
                             UI.showApp();
                             return;
                         } else {
-                            localStorage.removeItem('sim_amaanah_session'); // Kedaluwarsa
+                            localStorage.removeItem('sim_amaanah_session');
                         }
                     } catch(e) {}
                 }
@@ -631,7 +641,7 @@
                 localStorage.removeItem('sim_amaanah_session');
                 UI.showLogin();
                 if(auto) {
-                    Swal.fire({ icon: 'info', title: 'Sesi Berakhir', text: 'Anda otomatis keluar karena tidak ada aktivitas.', confirmButtonColor: '#10b981' });
+                    Swal.fire({ icon: 'info', title: 'Sesi Berakhir', text: 'Anda otomatis keluar karena tidak ada aktivitas selama 5 menit.', confirmButtonColor: '#10b981' });
                 }
             },
             saveSession() {
@@ -644,7 +654,6 @@
             },
             setupSessionInterval() {
                 State.lastActivity = Date.now();
-                // Reset waktu kadaluarsa setiap ada interaksi user
                 window.onmousemove = window.onkeydown = window.onclick = window.ontouchstart = () => {
                     State.lastActivity = Date.now();
                     this.saveSession();
@@ -653,9 +662,9 @@
                 if(this.interval) clearInterval(this.interval);
                 this.interval = setInterval(() => {
                     if (State.currentUser && (Date.now() - State.lastActivity > IDLE_TIMEOUT)) {
-                        this.logout(true); // Logout otomatis
+                        this.logout(true);
                     }
-                }, 10000); // Cek tiap 10 detik
+                }, 10000);
             }
         };
 
@@ -681,16 +690,41 @@
                 tbody.innerHTML = '';
                 
                 let count = 0;
-                State.santri.forEach(s => {
-                    if(!s.ID_Santri) return; // Skip baris kosong
+                const role = State.currentUser.role;
+
+                let displayData = State.santri;
+                if (role === 'santri') {
+                    displayData = displayData.filter(s => String(s.NISM).replace(/'/g,'') === String(State.currentUser.username));
+                }
+
+                displayData.forEach(s => {
+                    if(!s.ID_Santri) return;
                     
-                    // Filter pencarian
                     let matchName = s.Nama_Lengkap && s.Nama_Lengkap.toLowerCase().includes(search);
                     let matchNISM = s.NISM && String(s.NISM).toLowerCase().includes(search);
                     if(search && !matchName && !matchNISM) return;
                     
                     count++;
-                    const statusClass = s.Status_Belajar === 'Aktif' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800';
+                    const keaktifan = s.Status_Keaktifan || 'Aktif';
+                    let statusClass = 'bg-gray-100 text-gray-800';
+                    if (keaktifan === 'Aktif') statusClass = 'bg-green-100 text-green-800';
+                    else if (keaktifan === 'Lulus') statusClass = 'bg-blue-100 text-blue-800';
+                    else if (keaktifan === 'Non-Aktif') statusClass = 'bg-red-100 text-red-800';
+                    
+                    let actionHtml = '';
+                    if (role === 'admin' || role === 'pengurus') {
+                        actionHtml = `
+                            <button onclick="SantriController.edit('${s.ID_Santri}')" class="text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1 rounded mr-2 transition" title="Edit"><i class="fas fa-edit"></i> Edit</button>
+                            <button onclick="SantriController.delete('${s.ID_Santri}')" class="text-red-600 hover:text-red-800 bg-red-50 px-3 py-1 rounded transition" title="Hapus"><i class="fas fa-trash-alt"></i></button>
+                        `;
+                    } else if (role === 'santri') {
+                        actionHtml = `
+                            <button onclick="SantriController.edit('${s.ID_Santri}')" class="text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1 rounded transition" title="Edit Profil"><i class="fas fa-edit"></i> Edit Data Saya</button>
+                        `;
+                    } else if (role === 'guru') {
+                        actionHtml = `<span class="text-gray-400 italic text-xs font-normal">Hanya Lihat</span>`;
+                    }
+
                     const tr = document.createElement('tr');
                     tr.className = "hover:bg-gray-50 transition-colors";
                     tr.innerHTML = `
@@ -704,19 +738,23 @@
                         </td>
                         <td class="px-6 py-4">${s.Jenis_Kelamin || '-'}</td>
                         <td class="px-6 py-4">${s.Kabupaten || '-'}</td>
-                        <td class="px-6 py-4"><span class="px-2 py-1 inline-flex text-xs leading-4 font-bold rounded-md ${statusClass}">${s.Status_Belajar || '-'}</span></td>
+                        <td class="px-6 py-4"><span class="px-2.5 py-1 inline-flex text-xs leading-4 font-bold rounded-md ${statusClass}">${keaktifan}</span></td>
                         <td class="px-6 py-4 text-center text-sm font-medium">
-                            <button onclick="SantriController.edit('${s.ID_Santri}')" class="text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1 rounded mr-2 transition" title="Edit"><i class="fas fa-edit"></i> Edit</button>
-                            <button onclick="SantriController.delete('${s.ID_Santri}')" class="text-red-600 hover:text-red-800 bg-red-50 px-3 py-1 rounded admin-only transition" title="Hapus"><i class="fas fa-trash-alt"></i></button>
+                            ${actionHtml}
                         </td>
                     `;
                     tbody.appendChild(tr);
                 });
                 
-                if (count === 0 && !search) UI.showElement('santri-empty');
-                if (count === 0 && search) tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-gray-500">Pencarian "${search}" tidak ditemukan.</td></tr>`;
-                
-                UI.enforceRoles();
+                if (count === 0 && !search) {
+                    UI.showElement('santri-empty');
+                } else {
+                    UI.hideElement('santri-empty');
+                }
+
+                if (count === 0 && search) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-gray-500">Pencarian "${search}" tidak ditemukan.</td></tr>`;
+                }
             },
             openModal(id = null) {
                 document.getElementById('form-santri').reset();
@@ -728,7 +766,6 @@
                             const el = document.getElementById('S_' + field);
                             if(el) {
                                 let val = data[field];
-                                // Bersihkan tanda petik tunggal bawaan Google Sheets jika ada
                                 if(typeof val === 'string' && val.startsWith("'")) val = val.substring(1); 
                                 el.value = val !== undefined ? val : '';
                             }
@@ -737,6 +774,9 @@
                 } else {
                     document.getElementById('modal-santri-title').innerText = "Tambah Data Santri Baru";
                     document.getElementById('S_ID_Santri').value = '';
+                    // Default values
+                    document.getElementById('S_Status_Belajar').value = 'Aktif';
+                    document.getElementById('S_Status_Keaktifan').value = 'Aktif';
                 }
                 UI.openModal('modal-santri');
             },
@@ -744,7 +784,7 @@
             async save() {
                 const form = document.getElementById('form-santri');
                 if(!form.checkValidity()) {
-                    form.reportValidity(); // Tampilkan popup error bawaan HTML5
+                    form.reportValidity();
                     return;
                 }
 
@@ -762,7 +802,7 @@
                     const res = await API.post(action, data);
                     Swal.fire({ icon: 'success', title: 'Data Tersimpan', text: res.message, timer: 1500, showConfirmButton: false });
                     UI.closeModal('modal-santri');
-                    this.loadData(); // Segarkan tabel
+                    this.loadData();
                 } catch (error) {
                     Swal.fire({ icon: 'error', title: 'Gagal Menyimpan', text: error.message });
                 } finally {
@@ -814,7 +854,6 @@
                     const statusClass = u.Status === 'Aktif' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
                     const roleClass = u.Role === 'admin' ? 'bg-purple-100 text-purple-800 border border-purple-200' : 'bg-gray-100 text-gray-800 border border-gray-200';
                     
-                    // Mencegah admin mengubah dirinya sendiri menjadi user/nonaktif secara tidak sengaja (opsional, untuk safety)
                     const isSelfAdmin = (u.Username === 'admin' && State.currentUser.username !== 'admin');
                     
                     const tr = document.createElement('tr');
@@ -856,7 +895,6 @@
                     Swal.fire({ icon: 'success', title: 'Akses Diperbarui', text: 'Perubahan berhasil disimpan.', timer: 1500, showConfirmButton: false });
                     UI.closeModal('modal-user');
                     
-                    // Jika admin mengubah akunnya sendiri menjadi nonaktif (bunuh diri akun), paksa logout
                     if(data.ID_User === State.currentUser.id && data.Status !== 'Aktif') {
                         setTimeout(() => AuthController.logout(), 1500);
                         return;
@@ -873,9 +911,9 @@
 
         const DashboardController = {
             updateStats() {
-                // Update angka di dashboard secara dinamis
                 document.getElementById('dash-count-santri').innerText = State.santri.length;
-                document.getElementById('dash-count-aktif').innerText = State.santri.filter(s => s.Status_Belajar === 'Aktif').length;
+                // Santri Aktif dihitung berdasarkan Status_Keaktifan di pondok
+                document.getElementById('dash-count-aktif').innerText = State.santri.filter(s => (s.Status_Keaktifan || 'Aktif') === 'Aktif').length;
                 document.getElementById('dash-count-users').innerText = State.users.length;
             }
         };
@@ -902,34 +940,33 @@
                 this.enforceRoles();
                 this.navigate('dashboard');
                 
-                // Ambil data begitu masuk aplikasi
                 SantriController.loadData();
                 if(State.currentUser.role === 'admin') UserController.loadData();
             },
             enforceRoles() {
-                // Sembunyikan elemen dengan class 'admin-only' jika user bukan admin
+                const role = State.currentUser ? State.currentUser.role : '';
+                
                 const adminElements = document.querySelectorAll('.admin-only');
                 adminElements.forEach(el => {
-                    if (State.currentUser && State.currentUser.role === 'admin') {
-                        el.classList.remove('hidden');
-                    } else {
-                        el.classList.add('hidden');
-                    }
+                    if (role === 'admin') el.classList.remove('hidden');
+                    else el.classList.add('hidden');
+                });
+
+                const adminPengurusElements = document.querySelectorAll('.admin-pengurus-only');
+                adminPengurusElements.forEach(el => {
+                    if (role === 'admin' || role === 'pengurus') el.classList.remove('hidden');
+                    else el.classList.add('hidden');
                 });
             },
             navigate(page) {
-                // Sembunyikan semua halaman
                 document.querySelectorAll('.page-view').forEach(el => el.classList.add('hidden'));
-                // Hapus style aktif dari semua menu
                 document.querySelectorAll('nav a').forEach(el => {
                     el.classList.remove('bg-emerald-50', 'text-primary');
                     el.classList.add('text-gray-600');
                 });
                 
-                // Tampilkan halaman target
                 document.getElementById('page-' + page).classList.remove('hidden');
                 
-                // Beri warna pada menu aktif
                 const nav = document.getElementById('nav-' + page);
                 if(nav) {
                     nav.classList.remove('text-gray-600');
@@ -954,11 +991,9 @@
         };
 
         document.addEventListener('DOMContentLoaded', () => {
-            // Form Submit Listener
             document.getElementById('login-form').addEventListener('submit', (e) => AuthController.login(e));
             document.getElementById('register-form').addEventListener('submit', (e) => AuthController.register(e));
             
-            // Toggle antara Form Login dan Register
             document.getElementById('link-to-register').addEventListener('click', (e) => {
                 e.preventDefault();
                 document.getElementById('login-form').classList.add('hidden');
@@ -970,10 +1005,8 @@
                 document.getElementById('login-form').classList.remove('hidden');
             });
 
-            // Mulai Aplikasi
             AuthController.init();
         });
-
     </script>
 </body>
 </html>
