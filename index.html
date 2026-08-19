@@ -1,1016 +1,933 @@
-<!-- 2 -->
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SIM Ponpes Al Amaanah</title>
-
-    <!-- Logo Tab -->
+    <title>SIM Pondok Pesantren Al Amaanah</title>
     <link rel="icon" type="image/png" href="Logo AMBS.png">
-    
-    <!-- Fonts & Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        .loader { border-top-color: #3b82f6; -webkit-animation: spinner 1.5s linear infinite; animation: spinner 1.5s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="text-gray-800 antialiased h-screen flex overflow-hidden">
+
+    <div id="app-root" class="w-full h-full"></div>
+
     <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: { primary: '#10b981', secondary: '#047857' }
+        // GANTI URL INI dengan URL Web App Google Apps Script Anda setelah di-deploy
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbwHe3-qfD98G76GBbVSQqaspe9F-x63qeF71AmDVKtGFBixWyX0sDZvBMvNo9O7vA/exec"; 
+        const IS_DEMO = GAS_URL === ""; // Otomatis masuk mode demo jika URL kosong
+
+        // Konfigurasi Session & Timeout
+        const SESSION_TIMEOUT_MS = 5 * 60 * 1000; // 5 Menit
+        let sessionTimer = null;
+
+        // Dummy Data untuk Mode Demo
+        let dummyDB = {
+            santri: [
+                { id: "S2310001", nism: "123456", namaLengkap: "Ahmad Dahlan", namaPanggilan: "Ahmad", nik: "3501112223334444", noKk: "3501112223330000", jk: "Laki-laki", tempatLahir: "Jakarta", tglLahir: "2005-05-15", statusBelajar: "Aktif", jenjang: "SMA", instansi: "SMA Al Amaanah", jurusan: "IPA", mulaiMengaji: "Kecil", bahasaKeseharian: "Indonesia", bahasaMakna: "Jawa", tb: "165", bb: "55", golDarah: "O", riwayatSakit: "Tidak ada", alergi: "Debu", hobi: "Membaca", keahlian: "Tilawah", namaAyah: "Budi", statusAyah: "Hidup", pendAyah: "S1", pekAyah: "Wiraswasta", namaIbu: "Siti", statusIbu: "Hidup", pendIbu: "SMA", pekIbu: "Ibu Rumah Tangga", anakKe: "1", jmlSaudara: "2", alamat: "Jl. Merdeka No. 1", rt: "01", rw: "02", desa: "Maju", kec: "Jaya", kab: "Makmur", prov: "Jawa Timur", sambungDaerah: "Timur", sambungDesa: "Desa A", sambungKelompok: "Kelompok 1", statusAkun: "Aktif", password: "123" }
+            ],
+            guru: [
+                { id: "G2310001", namaLengkap: "Ust. Abdullah", namaPanggilan: "Abdullah", nik: "3501112223335555", noKk: "3501112223331111", jk: "Laki-laki", tempatLahir: "Bandung", tglLahir: "1990-08-20", golDarah: "A", statusBelajar: "Lulus", jenjang: "S1", instansi: "UIN", jurusan: "Tarbiyah", tglIjazah: "2012-07-10", mulaiMengaji: "Kecil", alamat: "Jl. Pahlawan", rt: "03", rw: "04", desa: "Damai", kec: "Sejahtera", kab: "Makmur", prov: "Jawa Timur", statusNikah: "Menikah", namaPasangan: "Aisyah", namaAyah: "Fulan", namaIbu: "Fulanah", sambungDaerah: "Timur", sambungDesa: "Desa A", sambungKelompok: "Kelompok 1", tglTugas: "2015-01-01", statusAkun: "Aktif", password: "123" }
+            ],
+            pengurus: [],
+            admin: [
+                { id: "A2310001", namaLengkap: "Super Admin", nik: "1234567890123456", jk: "Laki-laki", statusAkun: "Aktif", password: "admin" }
+            ],
+            kelas: [
+                { id: "K2608001", namaKelas: "X IPA 1", jenjang: "SMA", waliKelas1: "G2310001", waliKelas2: "", waliKelas3: "", kapasitas: "30", keterangan: "Ruang Utama Lantai 1" }
+            ],
+            kamar: [
+                { id: "K2608002", namaKamar: "Kamar Abu Bakar", gedung: "Gedung A Putra", kapasitas: "15", fasilitas: "Kipas Angin, Lemari Susun", pembina1: "G2310001", pembina2: "", pembina3: "", keterangan: "Kondisi Baik" }
+            ]
+        };
+
+        const schemas = {
+            basePersonal: [
+                { name: 'namaLengkap', label: 'Nama Lengkap', type: 'text', req: true },
+                { name: 'namaPanggilan', label: 'Nama Panggilan', type: 'text', req: true },
+                { name: 'nik', label: 'NIK (16 Digit)', type: 'text', req: true, pattern: '\\d{16}' },
+                { name: 'noKk', label: 'No KK (16 Digit)', type: 'text', req: true, pattern: '\\d{16}' },
+                { name: 'password', label: 'Password Akun', type: 'text', req: true },
+                { name: 'jk', label: 'Jenis Kelamin', type: 'select', options: ['Laki-laki', 'Perempuan'], req: true },
+                { name: 'tempatLahir', label: 'Tempat Lahir', type: 'text', req: true },
+                { name: 'tglLahir', label: 'Tanggal Lahir', type: 'date', req: true },
+                { name: 'golDarah', label: 'Golongan Darah', type: 'select', options: ['A', 'B', 'AB', 'O', 'Tidak Tahu'] },
+            ],
+            baseEduS: [
+                { name: 'statusBelajar', label: 'Status Belajar', type: 'select', options: ['Aktif', 'Lulus'] },
+                { name: 'jenjang', label: 'Jenjang Pendidikan', type: 'select', options: ['TK', 'SD', 'SMP', 'SMA', 'D1', 'D2', 'D3', 'D4', 'S1', 'S2', 'S3'] },
+                { name: 'instansi', label: 'Instansi Pendidikan', type: 'text' },
+                { name: 'jurusan', label: 'Jurusan', type: 'text' },
+            ],
+            baseEdu: [
+                { name: 'statusBelajar', label: 'Status Belajar', type: 'select', options: ['Aktif', 'Lulus'] },
+                { name: 'jenjang', label: 'Jenjang Pendidikan', type: 'select', options: ['TK', 'SD', 'SMP', 'SMA', 'D1', 'D2', 'D3', 'D4', 'S1', 'S2', 'S3'] },
+                { name: 'instansi', label: 'Instansi Pendidikan', type: 'text' },
+                { name: 'jurusan', label: 'Jurusan', type: 'text' },
+                { name: 'tglIjazah', label: 'Tanggal Ijazah', type: 'date' },
+            ],
+            baseAddress: [
+                { name: 'alamat', label: 'Alamat (Jalan/Dusun)', type: 'text' },
+                { name: 'rt', label: 'RT', type: 'text' },
+                { name: 'rw', label: 'RW', type: 'text' },
+                { name: 'desa', label: 'Desa/Kelurahan', type: 'text' },
+                { name: 'kec', label: 'Kecamatan', type: 'text' },
+                { name: 'kab', label: 'Kabupaten/Kota', type: 'text' },
+                { name: 'prov', label: 'Provinsi', type: 'text' },
+                { name: 'sambungDaerah', label: 'Sambung Daerah', type: 'text' },
+                { name: 'sambungDesa', label: 'Sambung Desa', type: 'text' },
+                { name: 'sambungKelompok', label: 'Sambung Kelompok', type: 'text' },
+                { name: 'mulaiMengaji', label: 'Mulai Mengaji', type: 'select', options: ['Lahir', 'Kecil', 'Remaja', 'Dewasa', 'Keluarga'] },
+            ],
+            santriSpecific: [
+                { name: 'nism', label: 'NISM', type: 'text' },
+                { name: 'bahasaKeseharian', label: 'Bahasa Keseharian', type: 'text' },
+                { name: 'bahasaMakna', label: 'Bahasa Makna', type: 'text' },
+                { name: 'tb', label: 'Tinggi Badan (cm)', type: 'number' },
+                { name: 'bb', label: 'Berat Badan (kg)', type: 'number' },
+                { name: 'riwayatSakit', label: 'Riwayat Sakit', type: 'text' },
+                { name: 'alergi', label: 'Alergi', type: 'text' },
+                { name: 'hobi', label: 'Hobi', type: 'text' },
+                { name: 'keahlian', label: 'Keahlian', type: 'text' },
+                { name: 'namaAyah', label: 'Nama Ayah', type: 'text' },
+                { name: 'statusAyah', label: 'Status Hidup Ayah', type: 'select', options: ['Hidup', 'Meninggal'] },
+                { name: 'pendAyah', label: 'Pendidikan Ayah', type: 'text' },
+                { name: 'pekAyah', label: 'Pekerjaan Ayah', type: 'text' },
+                { name: 'namaIbu', label: 'Nama Ibu', type: 'text' },
+                { name: 'statusIbu', label: 'Status Hidup Ibu', type: 'select', options: ['Hidup', 'Meninggal'] },
+                { name: 'pendIbu', label: 'Pendidikan Ibu', type: 'text' },
+                { name: 'pekIbu', label: 'Pekerjaan Ibu', type: 'text' },
+                { name: 'anakKe', label: 'Anak Keberapa', type: 'number' },
+                { name: 'jmlSaudara', label: 'Jumlah Saudara', type: 'number' },
+            ],
+            guruSpecific: [
+                { name: 'statusNikah', label: 'Status Pernikahan', type: 'select', options: ['Belum Menikah', 'Menikah', 'Cerai'] },
+                { name: 'namaPasangan', label: 'Nama Suami/Istri', type: 'text' },
+                { name: 'namaAyah', label: 'Nama Ayah Kandung', type: 'text' },
+                { name: 'namaIbu', label: 'Nama Ibu Kandung', type: 'text' },
+                { name: 'tglTugas', label: 'Tanggal Mulai Bertugas', type: 'date' },
+            ],
+            kelasMaster: [
+                { name: 'namaKelas', label: 'Nama Kelas', type: 'text', req: true },
+                { name: 'jenjang', label: 'Jenjang Pendidikan', type: 'select', options: ['TK', 'SD', 'SMP', 'SMA', 'D1', 'D2', 'D3', 'D4', 'S1', 'S2', 'S3'], req: true },
+                { name: 'waliKelas1', label: 'Wali Kelas 1', type: 'select', dynamic: 'guru' },
+                { name: 'waliKelas2', label: 'Wali Kelas 2', type: 'select', dynamic: 'guru' },
+                { name: 'waliKelas3', label: 'Wali Kelas 3', type: 'select', dynamic: 'guru' },
+                { name: 'kapasitas', label: 'Kapasitas Siswa', type: 'number' },
+                { name: 'keterangan', label: 'Keterangan Tambahan', type: 'textarea' },
+            ],
+            kamarMaster: [
+                { name: 'namaKamar', label: 'Nama Kamar / Asrama', type: 'text', req: true },
+                { name: 'gedung', label: 'Nama Gedung', type: 'text', req: true },
+                { name: 'kapasitas', label: 'Kapasitas Santri', type: 'number' },
+                { name: 'fasilitas', label: 'Fasilitas Tersedia', type: 'text' },
+                { name: 'pembina1', label: 'Pembina / Musyrif 1', type: 'select', dynamic: 'guru' },
+                { name: 'pembina2', label: 'Pembina / Musyrif 2', type: 'select', dynamic: 'guru' },
+                { name: 'pembina3', label: 'Pembina / Musyrif 3', type: 'select', dynamic: 'guru' },
+                { name: 'keterangan', label: 'Keterangan Tambahan', type: 'textarea' },
+            ]
+        };
+
+        // Menggabungkan schema menjadi schema lengkap per entitas dengan pengelompokan
+        const entitySchemas = {
+            santri: [
+                { id: 'personal', title: 'Data Personal', icon: 'fa-id-card', fields: schemas.basePersonal },
+                { id: 'specific', title: 'Data Spesifik Santri', icon: 'fa-user-graduate', fields: schemas.santriSpecific },
+                { id: 'education', title: 'Data Pendidikan', icon: 'fa-graduation-cap', fields: schemas.baseEduS },
+                { id: 'address', title: 'Data Alamat', icon: 'fa-map-marker-alt', fields: schemas.baseAddress }
+            ],
+            guru: [
+                { id: 'personal', title: 'Data Personal', icon: 'fa-id-card', fields: schemas.basePersonal },
+                { id: 'specific', title: 'Data Spesifik Guru', icon: 'fa-chalkboard-teacher', fields: schemas.guruSpecific },
+                { id: 'education', title: 'Data Pendidikan', icon: 'fa-graduation-cap', fields: schemas.baseEdu },
+                { id: 'address', title: 'Data Alamat', icon: 'fa-map-marker-alt', fields: schemas.baseAddress }
+            ],
+            pengurus: [
+                { id: 'personal', title: 'Data Personal', icon: 'fa-id-card', fields: schemas.basePersonal },
+                { id: 'specific', title: 'Data Spesifik Pengurus', icon: 'fa-users-cog', fields: schemas.guruSpecific },
+                { id: 'education', title: 'Data Pendidikan', icon: 'fa-graduation-cap', fields: schemas.baseEdu },
+                { id: 'address', title: 'Data Alamat', icon: 'fa-map-marker-alt', fields: schemas.baseAddress }
+            ],
+            admin: [
+                { id: 'personal', title: 'Data Personal', icon: 'fa-id-card', fields: schemas.basePersonal },
+                { id: 'specific', title: 'Data Spesifik Admin', icon: 'fa-user-shield', fields: schemas.guruSpecific },
+                { id: 'education', title: 'Data Pendidikan', icon: 'fa-graduation-cap', fields: schemas.baseEdu },
+                { id: 'address', title: 'Data Alamat', icon: 'fa-map-marker-alt', fields: schemas.baseAddress }
+            ],
+            kelas: [
+                { id: 'info', title: 'Informasi Kelas', icon: 'fa-chalkboard', fields: schemas.kelasMaster }
+            ],
+            kamar: [
+                { id: 'info', title: 'Informasi Kamar', icon: 'fa-bed', fields: schemas.kamarMaster }
+            ]
+        };
+
+        function getUserSession() {
+            return JSON.parse(sessionStorage.getItem('simUserSession'));
+        }
+
+        function setUserSession(user) {
+            sessionStorage.setItem('simUserSession', JSON.stringify(user));
+            resetTimer();
+        }
+
+        function clearUserSession() {
+            sessionStorage.removeItem('simUserSession');
+            clearTimeout(sessionTimer);
+        }
+
+        function resetTimer() {
+            if(!getUserSession()) return;
+            clearTimeout(sessionTimer);
+            sessionTimer = setTimeout(() => {
+                alert("Sesi Anda telah berakhir karena tidak ada aktivitas.");
+                logout();
+            }, SESSION_TIMEOUT_MS);
+        }
+
+        // Listener aktivitas untuk reset timeout
+        window.onload = resetTimer;
+        document.onmousemove = resetTimer;
+        document.onkeypress = resetTimer;
+        document.onclick = resetTimer;
+
+        function logout() {
+            clearUserSession();
+            renderApp();
+        }
+
+        async function apiRequest(action, payload) {
+            if (IS_DEMO) {
+                // Simulasi delay jaringan
+                await new Promise(r => setTimeout(r, 600)); 
+                return handleDemoLogic(action, payload);
+            } else {
+                try {
+                    const res = await fetch(GAS_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ action, ...payload })
+                    });
+                    return await res.json();
+                } catch (e) {
+                    console.error("API Error", e);
+                    alert("Koneksi ke database gagal. Menggunakan mode fallback sementara.");
+                    return { success: false, message: e.message };
                 }
             }
         }
-    </script>
 
-    <!-- SweetAlert2 untuk notifikasi modal/popup yang elegan -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-    <style>
-        /* Custom Scrollbar agar lebih estetik */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
-        .hide-scroll::-webkit-scrollbar { display: none; }
-    </style>
-</head>
-<body class="bg-gray-50 text-gray-800 antialiased h-screen flex overflow-hidden">
-
-    <div id="auth-view" class="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary to-secondary absolute inset-0 z-50">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 m-4 relative overflow-hidden transition-all duration-300">
-            <div class="text-center mb-8">
-                <i class="fas fa-mosque text-4xl text-primary mb-3"></i>
-                <h1 class="text-2xl font-bold text-gray-800">SIM Al Amaanah</h1>
-                <p class="text-sm text-gray-500 mt-1">Sistem Informasi Manajemen Terpadu</p>
-            </div>
-
-            <!-- Form Login -->
-            <form id="login-form" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Username (NISM untuk Santri)</label>
-                    <input type="text" id="log-username" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                    <input type="password" id="log-password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
-                </div>
-                <div class="flex items-center justify-between mt-2">
-                    <label class="flex items-center space-x-2 text-sm text-gray-600 cursor-pointer">
-                        <input type="checkbox" id="demo-mode" class="rounded text-primary focus:ring-primary">
-                        <span>Gunakan Mode Demo</span>
-                    </label>
-                </div>
-                <button type="submit" class="w-full bg-primary hover:bg-secondary text-white font-medium py-2.5 rounded-lg transition-colors mt-4 flex justify-center items-center">
-                    <span id="btn-login-text">Masuk</span>
-                    <i class="fas fa-spinner fa-spin ml-2 hidden" id="btn-login-loader"></i>
-                </button>
-                <p class="text-center text-sm text-gray-600 mt-4">
-                    Belum punya akun? <a href="#" id="link-to-register" class="text-primary hover:underline font-medium">Daftar disini</a>
-                </p>
-            </form>
-
-            <!-- Form Register (Hidden by default) -->
-            <form id="register-form" class="space-y-4 hidden">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Username Baru (Gunakan NISM untuk Santri)</label>
-                    <input type="text" id="reg-username" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                    <input type="password" id="reg-password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
-                </div>
-                <button type="submit" class="w-full bg-gray-800 hover:bg-gray-900 text-white font-medium py-2.5 rounded-lg transition-colors mt-4 flex justify-center items-center">
-                    <span id="btn-reg-text">Daftar Sekarang</span>
-                    <i class="fas fa-spinner fa-spin ml-2 hidden" id="btn-reg-loader"></i>
-                </button>
-                <p class="text-center text-sm text-gray-600 mt-4">
-                    Sudah punya akun? <a href="#" id="link-to-login" class="text-primary hover:underline font-medium">Kembali ke Login</a>
-                </p>
-            </form>
-        </div>
-    </div>
-
-    <div id="app-view" class="hidden flex w-full h-full">
-        
-        <!-- Sidebar Menu -->
-        <aside class="w-64 bg-white shadow-xl z-20 flex flex-col hidden md:flex">
-            <div class="h-16 flex items-center justify-center border-b border-gray-100 px-4">
-                <i class="fas fa-mosque text-2xl text-primary mr-2"></i>
-                <span class="font-bold text-gray-800 text-lg">Al Amaanah</span>
-            </div>
-            <nav class="flex-1 overflow-y-auto py-4 space-y-1 px-3">
-                <a href="#" onclick="UI.navigate('dashboard')" id="nav-dashboard" class="flex items-center px-4 py-3 text-gray-600 rounded-lg hover:bg-emerald-50 hover:text-primary transition-colors active-nav">
-                    <i class="fas fa-home w-6 text-center"></i>
-                    <span class="ml-2 font-medium">Dashboard</span>
-                </a>
-                
-                <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2 px-4">Master Data</div>
-                <a href="#" onclick="UI.navigate('santri')" id="nav-santri" class="flex items-center px-4 py-3 text-gray-600 rounded-lg hover:bg-emerald-50 hover:text-primary transition-colors">
-                    <i class="fas fa-users w-6 text-center"></i>
-                    <span class="ml-2 font-medium">Data Santri</span>
-                </a>
-                
-                <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2 px-4 admin-only">Sistem</div>
-                <a href="#" onclick="UI.navigate('users')" id="nav-users" class="flex items-center px-4 py-3 text-gray-600 rounded-lg hover:bg-emerald-50 hover:text-primary transition-colors admin-only">
-                    <i class="fas fa-user-shield w-6 text-center"></i>
-                    <span class="ml-2 font-medium">Kelola User</span>
-                </a>
-            </nav>
-            <div class="p-4 border-t border-gray-100">
-                <button onclick="AuthController.logout()" class="flex items-center w-full px-4 py-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                    <i class="fas fa-sign-out-alt w-6 text-center"></i>
-                    <span class="ml-2 font-medium">Logout</span>
-                </button>
-            </div>
-        </aside>
-
-        <!-- Area Konten Utama -->
-        <div class="flex-1 flex flex-col overflow-hidden">
-            <!-- Topbar Panel -->
-            <header class="h-16 bg-white shadow-sm flex items-center justify-between px-4 z-10">
-                <button class="md:hidden text-gray-500 hover:text-primary focus:outline-none" onclick="document.querySelector('aside').classList.toggle('hidden')">
-                    <i class="fas fa-bars text-xl"></i>
-                </button>
-                <div class="flex-1"></div>
-                <div class="flex items-center space-x-4">
-                    <span id="demo-badge" class="hidden bg-yellow-100 text-yellow-800 text-xs font-bold px-2.5 py-0.5 rounded border border-yellow-300">Mode Demo Aktif</span>
-                    <div class="flex items-center space-x-2">
-                        <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold">
-                            <i class="fas fa-user text-sm"></i>
-                        </div>
-                        <div class="text-sm">
-                            <p id="user-display-name" class="font-semibold text-gray-700">User</p>
-                            <p id="user-display-role" class="text-xs text-gray-500 capitalize">Role</p>
-                        </div>
-                    </div>
-                </div>
-            </header>
-
-            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-4 md:p-6" id="main-content">
-                
-                <div id="page-dashboard" class="page-view">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-6">Dashboard</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <!-- Kartu Total Santri -->
-                        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-primary flex items-center justify-between">
-                            <div>
-                                <p class="text-sm text-gray-500 font-medium mb-1">Total Santri</p>
-                                <h3 class="text-3xl font-bold text-gray-800" id="dash-count-santri">0</h3>
-                            </div>
-                            <div class="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-primary">
-                                <i class="fas fa-users text-xl"></i>
-                            </div>
-                        </div>
-                        <!-- Kartu Santri Aktif Pondok -->
-                        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500 flex items-center justify-between">
-                            <div>
-                                <p class="text-sm text-gray-500 font-medium mb-1">Santri Aktif (Pondok)</p>
-                                <h3 class="text-3xl font-bold text-gray-800" id="dash-count-aktif">0</h3>
-                            </div>
-                            <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-500">
-                                <i class="fas fa-book-reader text-xl"></i>
-                            </div>
-                        </div>
-                        <!-- Kartu Total User (Khusus Admin) -->
-                        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-purple-500 flex items-center justify-between admin-only">
-                            <div>
-                                <p class="text-sm text-gray-500 font-medium mb-1">Total Users Sistem</p>
-                                <h3 class="text-3xl font-bold text-gray-800" id="dash-count-users">0</h3>
-                            </div>
-                            <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-500">
-                                <i class="fas fa-user-shield text-xl"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mt-8 bg-white rounded-xl shadow-sm p-6">
-                        <h3 class="text-lg font-bold text-gray-800 mb-4">Selamat Datang di Sistem Informasi Manajemen</h3>
-                        <p class="text-gray-600 leading-relaxed">Sistem ini dirancang untuk memudahkan pengelolaan data induk santri dan administrasi pengguna di Pondok Pesantren Al Amaanah. Gunakan menu di samping kiri untuk bernavigasi.</p>
-                    </div>
-                </div>
-
-                <div id="page-santri" class="page-view hidden">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                        <h2 class="text-2xl font-bold text-gray-800">Manajemen Data Santri</h2>
-                        <button id="btn-add-santri" onclick="SantriController.openModal()" class="admin-pengurus-only bg-primary hover:bg-secondary text-white px-4 py-2 rounded-lg shadow transition-colors flex items-center">
-                            <i class="fas fa-plus mr-2"></i> Tambah Data Santri
-                        </button>
-                    </div>
-                    
-                    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-                        <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                            <!-- Kolom Pencarian -->
-                            <div class="relative w-full md:w-64">
-                                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
-                                <input type="text" id="search-santri" onkeyup="SantriController.renderTable()" placeholder="Cari nama atau NISM..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary focus:border-primary outline-none">
-                            </div>
-                            <button onclick="SantriController.loadData()" class="text-gray-500 hover:text-primary p-2 bg-white rounded shadow-sm border" title="Refresh Data">
-                                <i class="fas fa-sync-alt"></i> Refresh
-                            </button>
-                        </div>
-                        
-                        <!-- Tabel List Santri -->
-                        <div class="overflow-x-auto">
-                            <table class="w-full whitespace-nowrap">
-                                <thead class="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider text-left">
-                                    <tr>
-                                        <th class="px-6 py-3 font-medium">ID / NISM</th>
-                                        <th class="px-6 py-3 font-medium">Nama Lengkap</th>
-                                        <th class="px-6 py-3 font-medium">Jenis Kelamin</th>
-                                        <th class="px-6 py-3 font-medium">Asal Daerah</th>
-                                        <th class="px-6 py-3 font-medium">Status Keaktifan (Pondok)</th>
-                                        <th class="px-6 py-3 font-medium text-center">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="table-santri-body" class="divide-y divide-gray-100 text-sm">
-                                    <!-- Baris tabel akan dirender oleh JavaScript -->
-                                </tbody>
-                            </table>
-                        </div>
-                        
-                        <!-- State Loading & Empty -->
-                        <div id="santri-loading" class="p-8 text-center text-gray-500 hidden">
-                            <i class="fas fa-spinner fa-spin text-2xl mb-2 text-primary"></i>
-                            <p>Memuat data dari server...</p>
-                        </div>
-                        <div id="santri-empty" class="p-8 text-center text-gray-500 hidden">
-                            <i class="fas fa-folder-open text-4xl mb-2 text-gray-300"></i>
-                            <p>Belum ada data santri yang ditemukan.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="page-users" class="page-view hidden admin-only">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-6">Manajemen Akses Pengguna</h2>
-                    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-                        <div class="p-4 border-b border-gray-100 flex justify-end bg-gray-50">
-                            <button onclick="UserController.loadData()" class="text-gray-500 hover:text-primary p-2 bg-white rounded shadow-sm border" title="Refresh Data">
-                                <i class="fas fa-sync-alt"></i> Refresh
-                            </button>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full whitespace-nowrap">
-                                <thead class="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider text-left">
-                                    <tr>
-                                        <th class="px-6 py-3 font-medium">ID User</th>
-                                        <th class="px-6 py-3 font-medium">Username</th>
-                                        <th class="px-6 py-3 font-medium">Role</th>
-                                        <th class="px-6 py-3 font-medium">Status</th>
-                                        <th class="px-6 py-3 font-medium text-center">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="table-users-body" class="divide-y divide-gray-100 text-sm">
-                                    <!-- Baris diisi oleh JS -->
-                                </tbody>
-                            </table>
-                        </div>
-                        <div id="users-loading" class="p-8 text-center text-gray-500 hidden">
-                            <i class="fas fa-spinner fa-spin text-2xl mb-2 text-primary"></i>
-                            <p>Memuat data user...</p>
-                        </div>
-                    </div>
-                </div>
-
-            </main>
-        </div>
-    </div>
-
-    <div id="modal-santri" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-50 hidden flex items-center justify-center p-4 transition-opacity">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                <h3 class="text-lg font-bold text-gray-800" id="modal-santri-title">Tambah Data Santri Baru</h3>
-                <button onclick="UI.closeModal('modal-santri')" class="text-gray-400 hover:text-red-500 focus:outline-none">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-            
-            <!-- Form Scrollable Area -->
-            <div class="p-6 overflow-y-auto flex-1 hide-scroll">
-                <form id="form-santri" class="space-y-8">
-                    <!-- ID Tersembunyi untuk proses Update -->
-                    <input type="hidden" id="S_ID_Santri">
-                    
-                    <!-- Bagian: Data Diri Utama -->
-                    <div>
-                        <h4 class="text-primary font-semibold border-b border-gray-200 pb-2 mb-4"><i class="fas fa-id-card mr-2"></i>1. Data Diri Utama</h4>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">NISM (No. Induk Siswa Madrasah)*</label><input type="text" id="S_NISM" required class="w-full p-2 border rounded text-sm focus:border-primary outline-none"></div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Nama Lengkap*</label><input type="text" id="S_Nama_Lengkap" required class="w-full p-2 border rounded text-sm focus:border-primary outline-none uppercase"></div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Nama Panggilan</label><input type="text" id="S_Nama_Panggilan" class="w-full p-2 border rounded text-sm focus:border-primary outline-none"></div>
-                            
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">NIK (16 Digit)*</label><input type="text" id="S_NIK" required pattern="\d{16}" maxlength="16" title="Harus 16 digit angka" class="w-full p-2 border rounded text-sm focus:border-primary outline-none"></div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">No KK (16 Digit)*</label><input type="text" id="S_No_KK" required pattern="\d{16}" maxlength="16" title="Harus 16 digit angka" class="w-full p-2 border rounded text-sm focus:border-primary outline-none"></div>
-                            
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Jenis Kelamin*</label>
-                                <select id="S_Jenis_Kelamin" required class="w-full p-2 border rounded text-sm focus:border-primary outline-none bg-white">
-                                    <option value="">-- Pilih --</option><option value="Laki-laki">Laki-laki</option><option value="Perempuan">Perempuan</option>
-                                </select>
-                            </div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Tempat Lahir</label><input type="text" id="S_Tempat_Lahir" class="w-full p-2 border rounded text-sm focus:border-primary outline-none capitalize"></div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Tanggal Lahir</label><input type="date" id="S_Tanggal_Lahir" class="w-full p-2 border rounded text-sm focus:border-primary outline-none"></div>
-                        </div>
-                    </div>
-
-                    <!-- Bagian: Pendidikan & Kepesantrenan -->
-                    <div>
-                        <h4 class="text-primary font-semibold border-b border-gray-200 pb-2 mb-4"><i class="fas fa-book mr-2"></i>2. Pendidikan & Kepesantrenan</h4>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label class="block text-xs font-medium text-gray-700 mb-1">Status Belajar (Sekolah Formal)</label>
-                                <select id="S_Status_Belajar" class="w-full p-2 border rounded text-sm bg-white">
-                                    <option value="Aktif">Aktif Sekolah</option>
-                                    <option value="Lulus">Lulus Sekolah</option>
-                                    <option value="Keluar">Keluar / Putus Sekolah</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-gray-700 mb-1">Status Keaktifan (Pondok)*</label>
-                                <select id="S_Status_Keaktifan" required class="w-full p-2 border rounded text-sm bg-white font-medium text-emerald-700">
-                                    <option value="Aktif">Aktif (Ada & Mengikuti Kegiatan Pondok)</option>
-                                    <option value="Lulus">Lulus (Tamat Pondok)</option>
-                                    <option value="Non-Aktif">Non-Aktif / Boyong (Tidak di Pondok)</option>
-                                </select>
-                            </div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Jenjang Pendidikan Formal</label>
-                                <select id="S_Jenjang_Pendidikan" class="w-full p-2 border rounded text-sm bg-white">
-                                    <option value="">-- Pilih --</option><option value="TK">TK</option><option value="SD">SD</option><option value="SMP">SMP</option><option value="SMA">SMA</option><option value="D1">D1</option><option value="D2">D2</option><option value="D3">D3</option><option value="S1">S1</option><option value="S2">S2</option><option value="S3">S3</option>
-                                </select>
-                            </div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Nama Instansi/Sekolah</label><input type="text" id="S_Instansi" class="w-full p-2 border rounded text-sm"></div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Jurusan (Jika Ada)</label><input type="text" id="S_Jurusan" class="w-full p-2 border rounded text-sm"></div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Sejak Kapan Mulai Mengaji?</label>
-                                <select id="S_Mulai_Mengaji" class="w-full p-2 border rounded text-sm bg-white"><option value="">-- Pilih --</option><option value="Lahir">Dari Lahir (Genetik)</option><option value="Kecil">Masa Kanak-kanak</option><option value="Remaja">Masa Remaja</option><option value="Dewasa">Masa Dewasa</option><option value="Keluarga">Ikut Suami/Istri</option></select>
-                            </div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Pemahaman Bahasa Keseharian</label><input type="text" id="S_Bahasa_Keseharian" placeholder="Misal: Indonesia, Jawa" class="w-full p-2 border rounded text-sm"></div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Pemahaman Bahasa Makna (Pegon)</label><input type="text" id="S_Bahasa_Makna" placeholder="Misal: Jawa" class="w-full p-2 border rounded text-sm"></div>
-                        </div>
-                    </div>
-
-                    <!-- Bagian: Fisik, Kesehatan & Minat -->
-                    <div>
-                        <h4 class="text-primary font-semibold border-b border-gray-200 pb-2 mb-4"><i class="fas fa-heartbeat mr-2"></i>3. Fisik, Kesehatan & Potensi</h4>
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Tinggi Badan (cm)</label><input type="number" id="S_Tinggi_Badan" class="w-full p-2 border rounded text-sm"></div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Berat Badan (kg)</label><input type="number" id="S_Berat_Badan" class="w-full p-2 border rounded text-sm"></div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Golongan Darah</label>
-                                <select id="S_Golongan_Darah" class="w-full p-2 border rounded text-sm bg-white"><option value="-">Tidak Tahu</option><option value="A">A</option><option value="B">B</option><option value="AB">AB</option><option value="O">O</option></select>
-                            </div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Riwayat Penyakit Serius</label><input type="text" id="S_Riwayat_Sakit" class="w-full p-2 border rounded text-sm"></div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Alergi (Makanan/Obat)</label><input type="text" id="S_Alergi" class="w-full p-2 border rounded text-sm"></div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Hobi</label><input type="text" id="S_Hobi" class="w-full p-2 border rounded text-sm"></div>
-                            <div class="col-span-2"><label class="block text-xs font-medium text-gray-700 mb-1">Keahlian Khusus / Skill</label><input type="text" id="S_Keahlian" class="w-full p-2 border rounded text-sm"></div>
-                        </div>
-                    </div>
-
-                    <!-- Bagian: Keluarga -->
-                    <div>
-                        <h4 class="text-primary font-semibold border-b border-gray-200 pb-2 mb-4"><i class="fas fa-users mr-2"></i>4. Data Keluarga Inti</h4>
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Nama Ayah Kandung</label><input type="text" id="S_Nama_Ayah" class="w-full p-2 border rounded text-sm capitalize"></div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Status Ayah</label>
-                                <select id="S_Status_Ayah" class="w-full p-2 border rounded text-sm bg-white"><option value="Hidup">Hidup</option><option value="Meninggal">Meninggal</option></select>
-                            </div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Pendidikan Terakhir Ayah</label><input type="text" id="S_Pendidikan_Ayah" class="w-full p-2 border rounded text-sm"></div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Pekerjaan Ayah</label><input type="text" id="S_Pekerjaan_Ayah" class="w-full p-2 border rounded text-sm"></div>
-                            
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Nama Ibu Kandung</label><input type="text" id="S_Nama_Ibu" class="w-full p-2 border rounded text-sm capitalize"></div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Status Ibu</label>
-                                <select id="S_Status_Ibu" class="w-full p-2 border rounded text-sm bg-white"><option value="Hidup">Hidup</option><option value="Meninggal">Meninggal</option></select>
-                            </div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Pendidikan Terakhir Ibu</label><input type="text" id="S_Pendidikan_Ibu" class="w-full p-2 border rounded text-sm"></div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Pekerjaan Ibu</label><input type="text" id="S_Pekerjaan_Ibu" class="w-full p-2 border rounded text-sm"></div>
-                            
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Anak Ke- (Angka)</label><input type="number" id="S_Anak_Ke" class="w-full p-2 border rounded text-sm"></div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Dari Total Saudara</label><input type="number" id="S_Jml_Saudara" class="w-full p-2 border rounded text-sm"></div>
-                        </div>
-                    </div>
-
-                    <!-- Bagian: Alamat & Asal Sambung -->
-                    <div>
-                        <h4 class="text-primary font-semibold border-b border-gray-200 pb-2 mb-4"><i class="fas fa-map-marker-alt mr-2"></i>5. Alamat KTP & Lokasi Sambung</h4>
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div class="col-span-4"><label class="block text-xs font-medium text-gray-700 mb-1">Alamat Jalan / Nama Gedung / Dusun</label><input type="text" id="S_Alamat" class="w-full p-2 border rounded text-sm"></div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">RT (ex: 001)</label><input type="text" id="S_RT" class="w-full p-2 border rounded text-sm"></div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">RW (ex: 002)</label><input type="text" id="S_RW" class="w-full p-2 border rounded text-sm"></div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Desa/Kelurahan</label><input type="text" id="S_Desa" class="w-full p-2 border rounded text-sm"></div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Kecamatan</label><input type="text" id="S_Kecamatan" class="w-full p-2 border rounded text-sm"></div>
-                            <div class="col-span-2"><label class="block text-xs font-medium text-gray-700 mb-1">Kabupaten/Kota</label><input type="text" id="S_Kabupaten" class="w-full p-2 border rounded text-sm"></div>
-                            <div class="col-span-2"><label class="block text-xs font-medium text-gray-700 mb-1">Provinsi</label><input type="text" id="S_Provinsi" class="w-full p-2 border rounded text-sm"></div>
-                            
-                            <!-- Asal Sambung Ke-Jamaah-an -->
-                            <div class="col-span-4 border-t border-gray-100 pt-3 mt-2"></div>
-                            <div class="col-span-1 md:col-span-4 text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wider">Struktur Organisasi (Asal Jamaah)</div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Daerah / DPD</label><input type="text" id="S_Sambung_Daerah" class="w-full p-2 border rounded text-sm"></div>
-                            <div><label class="block text-xs font-medium text-gray-700 mb-1">Desa / PC</label><input type="text" id="S_Sambung_Desa" class="w-full p-2 border rounded text-sm"></div>
-                            <div class="col-span-2"><label class="block text-xs font-medium text-gray-700 mb-1">Kelompok / PAC</label><input type="text" id="S_Sambung_Kelompok" class="w-full p-2 border rounded text-sm"></div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            
-            <div class="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end space-x-3">
-                <button type="button" onclick="UI.closeModal('modal-santri')" class="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Batal</button>
-                <button type="button" onclick="SantriController.save()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary flex items-center transition-colors shadow-md">
-                    <span id="btn-save-santri-text">Simpan Data</span>
-                    <i class="fas fa-spinner fa-spin ml-2 hidden" id="btn-save-santri-loader"></i>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div id="modal-user" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                <h3 class="text-lg font-bold text-gray-800">Ubah Akses Pengguna</h3>
-                <button onclick="UI.closeModal('modal-user')" class="text-gray-400 hover:text-red-500">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="p-6">
-                <form id="form-user" class="space-y-4">
-                    <input type="hidden" id="U_ID_User">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Username (Tidak dapat diubah)</label>
-                        <input type="text" id="U_Username" readonly class="w-full p-2 border rounded bg-gray-100 text-gray-600 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Tingkat Akses (Role)</label>
-                        <select id="U_Role" class="w-full p-2 border rounded outline-none focus:border-primary">
-                            <option value="santri">Santri (Hanya Data Sendiri)</option>
-                            <option value="guru">Guru (Hanya Lihat Data)</option>
-                            <option value="pengurus">Pengurus (CRUD Data Santri)</option>
-                            <option value="admin">Administrator (Akses Penuh)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Status Akun</label>
-                        <select id="U_Status" class="w-full p-2 border rounded outline-none focus:border-primary">
-                            <option value="Aktif">Aktif (Bisa Login)</option>
-                            <option value="Non-Aktif">Non-Aktif (Diblokir)</option>
-                        </select>
-                    </div>
-                </form>
-            </div>
-            <div class="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end space-x-3">
-                <button type="button" onclick="UI.closeModal('modal-user')" class="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Batal</button>
-                <button type="button" onclick="UserController.save()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary flex items-center">
-                    <span id="btn-save-user-text">Simpan Perubahan</span>
-                    <i class="fas fa-spinner fa-spin ml-2 hidden" id="btn-save-user-loader"></i>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // ==========================================
-        // URL WEB APP GOOGLE APPS SCRIPT ANDA
-        // ==========================================
-        // const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwYOUR_APP_SCRIPT_ID_HERE/exec'; 
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_pkjlHNprg236tQQFpH2Jvz7WWu4xTeL8oI9WfE1OR697amaAGKqrEIFsv7jYpEI/exec'; 
-        const IDLE_TIMEOUT = 5 * 60 * 1000; // Auto-logout setelah 5 Menit tidak aktif
-
-        // State Global Aplikasi
-        const State = {
-            currentUser: null,
-            isDemo: false,
-            santri: [],
-            users: [],
-            lastActivity: Date.now()
-        };
-
-        // Daftar 44 Kolom/Variabel Santri untuk Form Mapping
-        const SANTRI_FIELDS = [
-            'ID_Santri', 'NISM', 'Nama_Lengkap', 'Nama_Panggilan', 'NIK', 'No_KK', 
-            'Jenis_Kelamin', 'Tempat_Lahir', 'Tanggal_Lahir', 'Status_Belajar', 'Jenjang_Pendidikan', 
-            'Instansi', 'Jurusan', 'Mulai_Mengaji', 'Bahasa_Keseharian', 'Bahasa_Makna', 
-            'Tinggi_Badan', 'Berat_Badan', 'Golongan_Darah', 'Riwayat_Sakit', 'Alergi', 'Hobi', 
-            'Keahlian', 'Nama_Ayah', 'Status_Ayah', 'Pendidikan_Ayah', 'Pekerjaan_Ayah', 
-            'Nama_Ibu', 'Status_Ibu', 'Pendidikan_Ibu', 'Pekerjaan_Ibu', 'Anak_Ke', 'Jml_Saudara', 
-            'Alamat', 'RT', 'RW', 'Desa', 'Kecamatan', 'Kabupaten', 'Provinsi', 
-            'Sambung_Daerah', 'Sambung_Desa', 'Sambung_Kelompok', 'Status_Keaktifan'
-        ];
-
-        const API = {
-            async post(action, data = {}) {
-                if (State.isDemo) return MockAPI.handle(action, data);
-
-                try {
-                    const response = await fetch(SCRIPT_URL, {
-                        method: 'POST',
-                        body: JSON.stringify({ action, data })
-                    });
-                    
-                    const textRes = await response.text(); 
-                    let resData;
-                    try {
-                        resData = JSON.parse(textRes);
-                    } catch(e) {
-                        console.error("Non-JSON Response dari server:", textRes);
-                        throw new Error('Server tidak mengembalikan data yang valid. Periksa URL Deployment.');
+        // Logika Mode Demo Internal
+        function handleDemoLogic(action, p) {
+            if (action === 'login') {
+                const tables = ['admin', 'pengurus', 'guru', 'santri'];
+                for (let t of tables) {
+                    const user = dummyDB[t].find(u => u.nik === p.nik && u.password === p.password);
+                    if (user) {
+                        if (user.statusAkun !== 'Aktif') return { success: false, message: 'Akun Anda belum aktif.' };
+                        return { success: true, user: { ...user, role: t } };
                     }
-
-                    if (resData.status === 'success') return resData.data;
-                    throw new Error(resData.message || 'Terjadi kesalahan pada sisi server.');
-                } catch (error) {
-                    if(error.message.includes('fetch')) {
-                        throw new Error('Gagal menghubungi server. Pastikan URL benar atau coba gunakan "Mode Demo".');
-                    }
-                    throw error;
                 }
+                return { success: false, message: 'Kredensial tidak valid.' };
             }
-        };
-
-        const MockAPI = {
-            delay: (ms) => new Promise(resolve => setTimeout(resolve, ms)),
-            async handle(action, data) {
-                await this.delay(600);
-                
-                if (action === 'login') {
-                    if (data.username === 'admin' && data.password === 'admin123') return { id: 'USR001', username: 'admin', role: 'admin' };
-                    if (data.username === 'pengurus' && data.password === 'pengurus123') return { id: 'USR002', username: 'pengurus', role: 'pengurus' };
-                    if (data.username === 'guru' && data.password === 'guru123') return { id: 'USR003', username: 'guru', role: 'guru' };
-                    if (data.username === '1234567890' && data.password === 'santri123') return { id: 'USR004', username: '1234567890', role: 'santri' };
-                    
-                    throw new Error("Username/Password Demo salah.\n(Demo: admin, pengurus, guru, 1234567890)\n(Password: [role]123)");
-                }
-                if (action === 'register') return { message: "Registrasi Demo berhasil! (Status: Non-Aktif)" };
-                
-                if (action === 'getSantri') return [...State.santri];
-                if (action === 'createSantri') {
-                    let id = "SNTDEMO" + String(State.santri.length + 1).padStart(3, '0');
-                    data.ID_Santri = id;
-                    State.santri.push(data);
-                    return { id, message: "Tersimpan di RAM lokal (Demo)." };
-                }
-                if (action === 'updateSantri') {
-                    let index = State.santri.findIndex(s => s.ID_Santri === data.ID_Santri);
-                    if(index > -1) State.santri[index] = data;
-                    return { message: "Terupdate di RAM lokal (Demo)." };
-                }
-                if (action === 'deleteSantri') {
-                    State.santri = State.santri.filter(s => s.ID_Santri !== data.ID_Santri);
-                    return { message: "Terhapus dari RAM lokal (Demo)." };
-                }
-
-                if (action === 'getUsers') return [...State.users];
-                if (action === 'updateUser') {
-                    let index = State.users.findIndex(u => u.ID_User === data.ID_User);
-                    if(index > -1) {
-                        State.users[index].Role = data.Role;
-                        State.users[index].Status = data.Status;
-                    }
-                    return { message: "Hak akses terupdate (Demo)." };
-                }
-                throw new Error("Aksi tidak didukung di Mode Demo");
-            },
-            initDemoData() {
-                State.santri = [
-                    { ID_Santri: "SNTDEMO001", NISM: "1234567890", Nama_Lengkap: "Ahmad Fulan Al Jawi", Jenis_Kelamin: "Laki-laki", Kabupaten: "Kediri", Status_Belajar: "Aktif", Status_Keaktifan: "Aktif", NIK: "3506123456789012", No_KK: "3506987654321098" },
-                    { ID_Santri: "SNTDEMO002", NISM: "0987654321", Nama_Lengkap: "Siti Aisyah", Jenis_Kelamin: "Perempuan", Kabupaten: "Jombang", Status_Belajar: "Lulus", Status_Keaktifan: "Non-Aktif", NIK: "3517123456789012", No_KK: "3517987654321098" }
-                ];
-                State.users = [
-                    { ID_User: "USR001", Username: "admin", Role: "admin", Status: "Aktif" },
-                    { ID_User: "USR002", Username: "pengurus", Role: "pengurus", Status: "Aktif" },
-                    { ID_User: "USR003", Username: "guru", Role: "guru", Status: "Aktif" },
-                    { ID_User: "USR004", Username: "1234567890", Role: "santri", Status: "Aktif" }
-                ];
+            if (action === 'register') {
+                if(!dummyDB[p.role]) dummyDB[p.role] = [];
+                // Cek NIK
+                if (dummyDB[p.role].find(u => u.nik === p.data.nik)) return { success: false, message: 'NIK sudah terdaftar!' };
+                // Generate ID Manual
+                const prefix = p.role.charAt(0).toUpperCase();
+                const d = new Date();
+                const yymm = String(d.getFullYear()).slice(-2) + String(d.getMonth() + 1).padStart(2, '0');
+                const nextNum = String(dummyDB[p.role].length + 1).padStart(3, '0');
+                p.data.id = `${prefix}${yymm}${nextNum}`;
+                p.data.statusAkun = 'Non Aktif';
+                dummyDB[p.role].push(p.data);
+                return { success: true, message: 'Registrasi berhasil. Menunggu aktivasi admin.' };
             }
-        };
-
-        const AuthController = {
-            init() {
-                const sessionStr = localStorage.getItem('sim_amaanah_session');
-                if (sessionStr) {
-                    try {
-                        const session = JSON.parse(sessionStr);
-                        if (Date.now() < session.expiresAt) {
-                            State.currentUser = session.user;
-                            State.isDemo = session.isDemo;
-                            if(State.isDemo) MockAPI.initDemoData();
-                            this.setupSessionInterval();
-                            UI.showApp();
-                            return;
-                        } else {
-                            localStorage.removeItem('sim_amaanah_session');
-                        }
-                    } catch(e) {}
-                }
-                UI.showLogin();
-            },
-            async login(e) {
-                e.preventDefault();
-                const u = document.getElementById('log-username').value;
-                const p = document.getElementById('log-password').value;
-                State.isDemo = document.getElementById('demo-mode').checked;
-                
-                if(State.isDemo) MockAPI.initDemoData();
-
-                UI.setLoading('btn-login-text', 'btn-login-loader', true);
-                try {
-                    const user = await API.post('login', { username: u, password: p });
-                    State.currentUser = user;
-                    this.saveSession();
-                    this.setupSessionInterval();
-                    UI.showApp();
-                    Swal.fire({ icon: 'success', title: 'Berhasil Login', text: `Selamat datang, ${user.username}!`, timer: 1500, showConfirmButton: false });
-                } catch (error) {
-                    Swal.fire({ icon: 'error', title: 'Akses Ditolak', text: error.message });
-                } finally {
-                    UI.setLoading('btn-login-text', 'btn-login-loader', false, 'Masuk');
-                }
-            },
-            async register(e) {
-                e.preventDefault();
-                const u = document.getElementById('reg-username').value;
-                const p = document.getElementById('reg-password').value;
-                State.isDemo = document.getElementById('demo-mode').checked;
-
-                UI.setLoading('btn-reg-text', 'btn-reg-loader', true);
-                try {
-                    const res = await API.post('register', { username: u, password: p });
-                    Swal.fire({ icon: 'success', title: 'Pendaftaran Berhasil', text: res.message });
-                    document.getElementById('link-to-login').click();
-                } catch (error) {
-                    Swal.fire({ icon: 'error', title: 'Pendaftaran Gagal', text: error.message });
-                } finally {
-                    UI.setLoading('btn-reg-text', 'btn-reg-loader', false, 'Daftar Sekarang');
-                }
-            },
-            logout(auto = false) {
-                State.currentUser = null;
-                localStorage.removeItem('sim_amaanah_session');
-                UI.showLogin();
-                if(auto) {
-                    Swal.fire({ icon: 'info', title: 'Sesi Berakhir', text: 'Anda otomatis keluar karena tidak ada aktivitas selama 5 menit.', confirmButtonColor: '#10b981' });
-                }
-            },
-            saveSession() {
-                const session = {
-                    user: State.currentUser,
-                    isDemo: State.isDemo,
-                    expiresAt: Date.now() + IDLE_TIMEOUT
-                };
-                localStorage.setItem('sim_amaanah_session', JSON.stringify(session));
-            },
-            setupSessionInterval() {
-                State.lastActivity = Date.now();
-                window.onmousemove = window.onkeydown = window.onclick = window.ontouchstart = () => {
-                    State.lastActivity = Date.now();
-                    this.saveSession();
-                };
-                
-                if(this.interval) clearInterval(this.interval);
-                this.interval = setInterval(() => {
-                    if (State.currentUser && (Date.now() - State.lastActivity > IDLE_TIMEOUT)) {
-                        this.logout(true);
-                    }
-                }, 10000);
+            if (action === 'get') {
+                return { success: true, data: dummyDB[p.entity] || [] };
             }
-        };
-
-        const SantriController = {
-            async loadData() {
-                UI.showElement('santri-loading');
-                document.getElementById('table-santri-body').innerHTML = '';
-                document.getElementById('santri-empty').classList.add('hidden');
-                
-                try {
-                    State.santri = await API.post('getSantri');
-                    this.renderTable();
-                    DashboardController.updateStats();
-                } catch (error) {
-                    Swal.fire({ icon: 'error', title: 'Gagal Memuat Data', text: error.message });
-                } finally {
-                    UI.hideElement('santri-loading');
-                }
-            },
-            renderTable() {
-                const tbody = document.getElementById('table-santri-body');
-                const search = document.getElementById('search-santri').value.toLowerCase();
-                tbody.innerHTML = '';
-                
-                let count = 0;
-                const role = State.currentUser.role;
-
-                let displayData = State.santri;
-                if (role === 'santri') {
-                    displayData = displayData.filter(s => String(s.NISM).replace(/'/g,'') === String(State.currentUser.username));
-                }
-
-                displayData.forEach(s => {
-                    if(!s.ID_Santri) return;
-                    
-                    let matchName = s.Nama_Lengkap && s.Nama_Lengkap.toLowerCase().includes(search);
-                    let matchNISM = s.NISM && String(s.NISM).toLowerCase().includes(search);
-                    if(search && !matchName && !matchNISM) return;
-                    
-                    count++;
-                    const keaktifan = s.Status_Keaktifan || 'Aktif';
-                    let statusClass = 'bg-gray-100 text-gray-800';
-                    if (keaktifan === 'Aktif') statusClass = 'bg-green-100 text-green-800';
-                    else if (keaktifan === 'Lulus') statusClass = 'bg-blue-100 text-blue-800';
-                    else if (keaktifan === 'Non-Aktif') statusClass = 'bg-red-100 text-red-800';
-                    
-                    let actionHtml = '';
-                    if (role === 'admin' || role === 'pengurus') {
-                        actionHtml = `
-                            <button onclick="SantriController.edit('${s.ID_Santri}')" class="text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1 rounded mr-2 transition" title="Edit"><i class="fas fa-edit"></i> Edit</button>
-                            <button onclick="SantriController.delete('${s.ID_Santri}')" class="text-red-600 hover:text-red-800 bg-red-50 px-3 py-1 rounded transition" title="Hapus"><i class="fas fa-trash-alt"></i></button>
-                        `;
-                    } else if (role === 'santri') {
-                        actionHtml = `
-                            <button onclick="SantriController.edit('${s.ID_Santri}')" class="text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1 rounded transition" title="Edit Profil"><i class="fas fa-edit"></i> Edit Data Saya</button>
-                        `;
-                    } else if (role === 'guru') {
-                        actionHtml = `<span class="text-gray-400 italic text-xs font-normal">Hanya Lihat</span>`;
-                    }
-
-                    const tr = document.createElement('tr');
-                    tr.className = "hover:bg-gray-50 transition-colors";
-                    tr.innerHTML = `
-                        <td class="px-6 py-4">
-                            <div class="font-medium text-gray-900">${(s.NISM||'').replace(/'/g,'') || '-'}</div>
-                            <div class="text-xs text-gray-400">${s.ID_Santri}</div>
-                        </td>
-                        <td class="px-6 py-4">
-                            <div class="font-bold text-gray-900">${s.Nama_Lengkap}</div>
-                            <div class="text-xs text-gray-500">${s.NIK ? 'NIK: '+(String(s.NIK).replace(/'/g,'')) : ''}</div>
-                        </td>
-                        <td class="px-6 py-4">${s.Jenis_Kelamin || '-'}</td>
-                        <td class="px-6 py-4">${s.Kabupaten || '-'}</td>
-                        <td class="px-6 py-4"><span class="px-2.5 py-1 inline-flex text-xs leading-4 font-bold rounded-md ${statusClass}">${keaktifan}</span></td>
-                        <td class="px-6 py-4 text-center text-sm font-medium">
-                            ${actionHtml}
-                        </td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-                
-                if (count === 0 && !search) {
-                    UI.showElement('santri-empty');
+            if (action === 'save') {
+                const arr = dummyDB[p.entity];
+                if (p.id) {
+                    // Update
+                    const idx = arr.findIndex(x => x.id === p.id);
+                    if(idx > -1) arr[idx] = { ...arr[idx], ...p.data };
                 } else {
-                    UI.hideElement('santri-empty');
+                    // Create
+                    let prefix = p.entity.charAt(0).toUpperCase();
+                    if (p.entity === 'kelas') prefix = 'C';
+                    else if (p.entity === 'kamar') prefix = 'R';
+                    
+                    const d = new Date();
+                    const yymm = String(d.getFullYear()).slice(-2) + String(d.getMonth() + 1).padStart(2, '0');
+                    const nextNum = String(arr.length + 1).padStart(3, '0');
+                    p.data.id = `${prefix}${yymm}${nextNum}`;
+                    if(!p.data.statusAkun) p.data.statusAkun = 'Aktif';
+                    if(!p.data.password) p.data.password = '123'; 
+                    arr.push(p.data);
                 }
+                return { success: true, message: 'Data berhasil disimpan!' };
+            }
+            if (action === 'delete') {
+                dummyDB[p.entity] = dummyDB[p.entity].filter(x => x.id !== p.id);
+                return { success: true, message: 'Data dihapus!' };
+            }
+            if (action === 'updateStatus') {
+                const idx = dummyDB[p.entity].findIndex(x => x.id === p.id);
+                if(idx > -1) dummyDB[p.entity][idx].statusAkun = p.status;
+                return { success: true };
+            }
+        }
 
-                if (count === 0 && search) {
-                    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-gray-500">Pencarian "${search}" tidak ditemukan.</td></tr>`;
+        let currentView = 'dashboard';
+        let currentEntity = null; // untuk CRUD
+
+        function renderApp() {
+            const root = document.getElementById('app-root');
+            const user = getUserSession();
+            if (!user) {
+                root.innerHTML = getAuthHTML();
+                setupAuthEvents();
+            } else {
+                root.innerHTML = getAppHTML(user);
+                setupAppEvents(user);
+                loadContent(currentView, currentEntity);
+            }
+        }
+
+        function getAuthHTML() {
+            return `
+            <div class="flex items-center justify-center h-full bg-slate-100">
+                <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
+                    <div class="text-center mb-6">
+                        <!-- <img src="https://ui-avatars.com/api/?name=Al+Amaanah&background=0D8ABC&color=fff&rounded=true" alt="Logo" class="w-20 h-20 mx-auto mb-2"> -->
+                        <!-- <i class="fas fa-mosque text-4xl text-green-500 mb-3"></i> -->
+                        <!-- Tambahkan flex, justify-center, dan items-center pada pembungkusnya -->
+                        <div class="flex justify-center items-center mb-3">
+                            <img src="Logo AMBS.png" alt="Logo AMBS" class="w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24">
+                        </div>
+                        <h2 class="text-2xl font-bold text-gray-800">SIM Al Amaanah</h2>
+                        <p class="text-sm text-gray-500">Sistem Informasi Manajemen Pesantren</p>
+                        ${IS_DEMO ? '<span class="inline-block mt-2 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">Demo Mode Active</span>' : ''}
+                    </div>
+
+                    <!-- Login Form -->
+                    <div id="login-form">
+                        <form id="form-login">
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">NIK</label>
+                                <input type="text" id="login-nik" required class="w-full px-4 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500" placeholder="Masukkan 16 Digit NIK">
+                            </div>
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                                <input type="password" id="login-pass" required class="w-full px-4 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500" placeholder="Password (Demo admin: admin)">
+                            </div>
+                            <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg flex justify-center items-center">
+                                <span id="login-text">Masuk</span>
+                                <div id="login-loader" class="hidden loader w-5 h-5 border-2 border-white rounded-full ml-2"></div>
+                            </button>
+                        </form>
+                        <p class="mt-4 text-center text-sm">Belum punya akun? <a href="#" id="go-register" class="text-green-600 hover:underline">Daftar sekarang</a></p>
+                    </div>
+
+                    <!-- Register Form -->
+                    <div id="register-form" class="hidden">
+                        <form id="form-register">
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Daftar Sebagai</label>
+                                <select id="reg-role" required class="w-full px-4 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500">
+                                    <option value="santri">Santri</option>
+                                    <option value="guru">Guru</option>
+                                    <option value="pengurus">Pengurus</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
+                                <input type="text" id="reg-nama" required class="w-full px-4 py-2 border rounded-lg">
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">NIK</label>
+                                <input type="text" id="reg-nik" required class="w-full px-4 py-2 border rounded-lg" placeholder="16 Digit NIK">
+                            </div>
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                                <input type="password" id="reg-pass" required class="w-full px-4 py-2 border rounded-lg">
+                            </div>
+                            <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg flex justify-center items-center">
+                                <span id="reg-text">Daftar</span>
+                                <div id="reg-loader" class="hidden loader w-5 h-5 border-2 border-white rounded-full ml-2"></div>
+                            </button>
+                        </form>
+                        <p class="mt-4 text-center text-sm">Sudah punya akun? <a href="#" id="go-login" class="text-green-600 hover:underline">Kembali ke Login</a></p>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function setupAuthEvents() {
+            const loginForm = document.getElementById('login-form');
+            const registerForm = document.getElementById('register-form');
+            
+            document.getElementById('go-register').onclick = (e) => { e.preventDefault(); loginForm.classList.add('hidden'); registerForm.classList.remove('hidden'); };
+            document.getElementById('go-login').onclick = (e) => { e.preventDefault(); registerForm.classList.add('hidden'); loginForm.classList.remove('hidden'); };
+
+            document.getElementById('form-login').onsubmit = async (e) => {
+                e.preventDefault();
+                const btnText = document.getElementById('login-text');
+                const loader = document.getElementById('login-loader');
+                btnText.classList.add('hidden'); loader.classList.remove('hidden');
+
+                const res = await apiRequest('login', {
+                    nik: document.getElementById('login-nik').value,
+                    password: document.getElementById('login-pass').value
+                });
+
+                if (res.success) {
+                    setUserSession(res.user);
+                    renderApp();
+                } else {
+                    alert(res.message);
                 }
-            },
-            openModal(id = null) {
-                document.getElementById('form-santri').reset();
-                if (id) {
-                    const data = State.santri.find(s => s.ID_Santri === id);
-                    if (data) {
-                        document.getElementById('modal-santri-title').innerText = "Edit Data Santri: " + data.Nama_Lengkap;
-                        SANTRI_FIELDS.forEach(field => {
-                            const el = document.getElementById('S_' + field);
-                            if(el) {
-                                let val = data[field];
-                                if(typeof val === 'string' && val.startsWith("'")) val = val.substring(1); 
-                                el.value = val !== undefined ? val : '';
-                            }
+                btnText.classList.remove('hidden'); loader.classList.add('hidden');
+            };
+
+            document.getElementById('form-register').onsubmit = async (e) => {
+                e.preventDefault();
+                const btnText = document.getElementById('reg-text');
+                const loader = document.getElementById('reg-loader');
+                btnText.classList.add('hidden'); loader.classList.remove('hidden');
+
+                const res = await apiRequest('register', {
+                    role: document.getElementById('reg-role').value,
+                    data: {
+                        namaLengkap: document.getElementById('reg-nama').value,
+                        nik: document.getElementById('reg-nik').value,
+                        password: document.getElementById('reg-pass').value
+                    }
+                });
+                alert(res.message);
+                if(res.success) {
+                    document.getElementById('go-login').click();
+                    document.getElementById('form-register').reset();
+                }
+                btnText.classList.remove('hidden'); loader.classList.add('hidden');
+            };
+        }
+
+        function getAppHTML(user) {
+            let menuHTML = `<a href="#" data-view="dashboard" class="nav-btn block py-2.5 px-4 rounded transition duration-200 hover:bg-green-700 bg-green-700"><i class="fas fa-home mr-2 w-5"></i> Dashboard</a>`;
+            
+            // Semua role mendapatkan menu Data Diri / Akun untuk melihat dan merubah datanya sendiri
+            menuHTML += `
+                <p class="px-4 mt-4 mb-2 text-xs font-semibold text-green-300 uppercase tracking-wider">Pribadi</p>
+                <a href="#" data-view="profile" data-entity="${user.role}" class="nav-btn block py-2 px-4 rounded transition hover:bg-green-700"><i class="fas fa-user mr-2 w-5"></i> Data Diri / Akun</a>
+            `;
+
+            // Admin, Pengurus, dan Guru bisa melihat Data Master (Santri tidak bisa)
+            if (user.role === 'admin' || user.role === 'pengurus' || user.role === 'guru') {
+                menuHTML += `
+                    <p class="px-4 mt-4 mb-2 text-xs font-semibold text-green-300 uppercase tracking-wider">Data Master</p>
+                    <a href="#" data-view="crud" data-entity="santri" class="nav-btn block py-2 px-4 rounded transition hover:bg-green-700"><i class="fas fa-user-graduate mr-2 w-5"></i> Data Santri</a>
+                    <a href="#" data-view="crud" data-entity="guru" class="nav-btn block py-2 px-4 rounded transition hover:bg-green-700"><i class="fas fa-chalkboard-teacher mr-2 w-5"></i> Data Guru</a>
+                    <a href="#" data-view="crud" data-entity="pengurus" class="nav-btn block py-2 px-4 rounded transition hover:bg-green-700"><i class="fas fa-users-cog mr-2 w-5"></i> Data Pengurus</a>
+                    <a href="#" data-view="crud" data-entity="admin" class="nav-btn block py-2 px-4 rounded transition hover:bg-green-700"><i class="fas fa-user-shield mr-2 w-5"></i> Data Admin</a>
+                    <a href="#" data-view="crud" data-entity="kelas" class="nav-btn block py-2 px-4 rounded transition hover:bg-green-700"><i class="fas fa-chalkboard mr-2 w-5"></i> Data Kelas</a>
+                    <a href="#" data-view="crud" data-entity="kamar" class="nav-btn block py-2 px-4 rounded transition hover:bg-green-700"><i class="fas fa-bed mr-2 w-5"></i> Data Kamar</a>
+                `;
+            }
+
+            // Hanya Admin dan Pengurus yang bisa Kelola User
+            if (user.role === 'admin' || user.role === 'pengurus') {
+                menuHTML += `
+                    <p class="px-4 mt-4 mb-2 text-xs font-semibold text-green-300 uppercase tracking-wider">Sistem</p>
+                    <a href="#" data-view="users" class="nav-btn block py-2 px-4 rounded transition hover:bg-green-700"><i class="fas fa-users mr-2 w-5"></i> Kelola User</a>
+                `;
+            }
+
+            return `
+            <div class="flex h-screen bg-gray-100 font-sans">
+            // Hanya Admin dan Pengurus yang bisa Kelola User
+                <div class="w-64 bg-green-900 text-white flex flex-col hidden md:flex shrink-0 z-20">
+                    <div class="p-4 flex items-center shadow-md bg-green-950">
+                        <i class="fas fa-mosque text-2xl mr-3 text-green-300"></i>
+                        <span class="text-xl font-bold tracking-wide">SIM PAA</span>
+                    </div>
+                    <div class="overflow-y-auto hide-scroll flex-1 p-3 space-y-1">
+                        ${menuHTML}
+                    </div>
+                </div>
+
+                <!-- Main Content -->
+                <div class="flex-1 flex flex-col overflow-hidden relative">
+                    <!-- Header -->
+                    <header class="bg-white shadow-sm h-16 flex items-center justify-between px-6 z-10">
+                        <div class="flex items-center">
+                            <button id="mobile-menu-btn" class="md:hidden mr-4 text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-bars text-xl"></i>
+                            </button>
+                            <h1 id="page-title" class="text-xl font-semibold text-gray-800 capitalize">Dashboard</h1>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="text-right hidden sm:block">
+                                <p class="text-sm font-semibold text-gray-700">${user.namaLengkap}</p>
+                                <p class="text-xs text-gray-500 capitalize">${user.role}</p>
+                            </div>
+                            <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold">
+                                ${user.namaLengkap.charAt(0).toUpperCase()}
+                            </div>
+                            <button onclick="logout()" class="text-red-500 hover:text-red-700" title="Logout"><i class="fas fa-sign-out-alt text-xl"></i></button>
+                        </div>
+                    </header>
+
+                    <!-- Content Body -->
+                    <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6" id="main-content">
+                        <!-- Konten dinamis akan dimuat disini -->
+                    </main>
+                </div>
+            </div>
+            
+            <!-- Modal Container (Reusable) -->
+            <div id="modal-container" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex justify-center items-center p-4">
+                <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+                    <div class="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-xl">
+                        <h3 class="text-lg font-bold text-gray-800" id="modal-title">Form</h3>
+                        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
+                    </div>
+                    <div class="p-6 overflow-y-auto hide-scroll flex-1 relative" id="modal-body"></div>
+                </div>
+            </div>
+            `;
+        }
+
+        function setupAppEvents(user) {
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.preventDefault();
+                    // Update active class
+                    document.querySelectorAll('.nav-btn').forEach(b => {
+                        b.classList.remove('bg-green-700');
+                        if(b.dataset.view === 'crud') b.classList.remove('bg-green-700');
+                    });
+                    btn.classList.add('bg-green-700');
+
+                    currentView = btn.dataset.view;
+                    currentEntity = btn.dataset.entity;
+                    loadContent(currentView, currentEntity);
+                };
+            });
+        }
+
+        async function loadContent(view, entity) {
+            const container = document.getElementById('main-content');
+            const title = document.getElementById('page-title');
+            const user = getUserSession();
+            
+            container.innerHTML = `<div class="flex justify-center items-center h-64"><div class="loader w-10 h-10 border-4 border-green-200 rounded-full"></div></div>`;
+
+            if (view === 'dashboard') {
+                title.innerText = 'Dashboard';
+                renderDashboard(container);
+            } else if (view === 'crud') {
+                title.innerText = `Data Master - ${entity}`;
+                
+                // MAPPING RELASI: Jika membuka view Kelas atau Kamar, ambil juga referensi data Guru
+                let lookupMap = {};
+                if (entity === 'kelas' || entity === 'kamar') {
+                    const guruRes = await apiRequest('get', { entity: 'guru' });
+                    lookupMap.guru = {};
+                    if(guruRes.success) {
+                        guruRes.data.forEach(g => {
+                            lookupMap.guru[g.id] = g.namaLengkap;
                         });
                     }
-                } else {
-                    document.getElementById('modal-santri-title').innerText = "Tambah Data Santri Baru";
-                    document.getElementById('S_ID_Santri').value = '';
-                    // Default values
-                    document.getElementById('S_Status_Belajar').value = 'Aktif';
-                    document.getElementById('S_Status_Keaktifan').value = 'Aktif';
-                }
-                UI.openModal('modal-santri');
-            },
-            edit(id) { this.openModal(id); },
-            async save() {
-                const form = document.getElementById('form-santri');
-                if(!form.checkValidity()) {
-                    form.reportValidity();
-                    return;
                 }
 
-                const data = {};
-                SANTRI_FIELDS.forEach(field => {
-                    const el = document.getElementById('S_' + field);
-                    if(el) data[field] = el.value.trim();
-                });
-
-                const isEdit = !!data.ID_Santri;
-                const action = isEdit ? 'updateSantri' : 'createSantri';
-                
-                UI.setLoading('btn-save-santri-text', 'btn-save-santri-loader', true);
-                try {
-                    const res = await API.post(action, data);
-                    Swal.fire({ icon: 'success', title: 'Data Tersimpan', text: res.message, timer: 1500, showConfirmButton: false });
-                    UI.closeModal('modal-santri');
-                    this.loadData();
-                } catch (error) {
-                    Swal.fire({ icon: 'error', title: 'Gagal Menyimpan', text: error.message });
-                } finally {
-                    UI.setLoading('btn-save-santri-text', 'btn-save-santri-loader', false, 'Simpan Data');
-                }
-            },
-            async delete(id) {
-                const confirm = await Swal.fire({
-                    title: 'Yakin hapus data ini?', text: "Data santri yang dihapus tidak dapat dikembalikan!", icon: 'warning',
-                    showCancelButton: true, confirmButtonColor: '#ef4444', cancelButtonColor: '#9ca3af', confirmButtonText: 'Ya, Hapus Permanen'
-                });
-                if (confirm.isConfirmed) {
-                    try {
-                        Swal.fire({ title: 'Menghapus...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
-                        const res = await API.post('deleteSantri', { ID_Santri: id });
-                        Swal.fire('Terhapus!', res.message, 'success');
-                        this.loadData();
-                    } catch (error) {
-                        Swal.fire('Gagal!', error.message, 'error');
-                    }
-                }
+                const res = await apiRequest('get', { entity });
+                renderTable(container, entity, res.data || [], lookupMap);
+            } else if (view === 'profile') {
+                title.innerText = 'Data Diri / Akun Anda';
+                const res = await apiRequest('get', { entity });
+                const myData = (res.data || []).find(x => x.id === user.id) || user;
+                openFormModal(entity, myData, false); // Buka langsung sebagai form
+                container.innerHTML = `<div class="bg-white p-6 rounded shadow text-center"><p>Edit data dilakukan melalui jendela pop-up. Jika tertutup, klik navigasi "Data Diri / Akun" kembali.</p></div>`;
+            } else if (view === 'users') {
+                title.innerText = 'Kelola User Akun';
+                renderUserManagement(container);
             }
-        };
+        }
 
-        const UserController = {
-            async loadData() {
-                if (State.currentUser.role !== 'admin') return;
-                
-                UI.showElement('users-loading');
-                document.getElementById('table-users-body').innerHTML = '';
-                
-                try {
-                    State.users = await API.post('getUsers');
-                    this.renderTable();
-                    DashboardController.updateStats();
-                } catch (error) {
-                    Swal.fire({ icon: 'error', title: 'Error Data User', text: error.message });
-                } finally {
-                    UI.hideElement('users-loading');
-                }
-            },
-            renderTable() {
-                const tbody = document.getElementById('table-users-body');
-                tbody.innerHTML = '';
-                
-                State.users.forEach(u => {
-                    if(!u.ID_User) return;
+        async function renderDashboard(container) {
+            let statsHTML = '';
+            if(IS_DEMO) {
+                statsHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                    <div class="bg-white rounded-xl shadow p-6 border-l-4 border-green-500">
+                        <div class="flex items-center justify-between"><h3 class="text-gray-500 font-semibold">Total Santri</h3><i class="fas fa-user-graduate text-green-200 text-2xl"></i></div>
+                        <p class="text-3xl font-bold mt-2">${dummyDB.santri.length}</p>
+                    </div>
+                    <div class="bg-white rounded-xl shadow p-6 border-l-4 border-green-500">
+                        <div class="flex items-center justify-between"><h3 class="text-gray-500 font-semibold">Total Guru</h3><i class="fas fa-chalkboard-teacher text-green-200 text-2xl"></i></div>
+                        <p class="text-3xl font-bold mt-2">${dummyDB.guru.length}</p>
+                    </div>
+                </div>`;
+            }
+            container.innerHTML = `
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">Selamat Datang, ${getUserSession().namaLengkap}</h2>
+                    <p class="text-gray-600">Sistem Informasi Manajemen Pondok Pesantren Al Amaanah.</p>
+                </div>
+                ${statsHTML}
+                <div class="bg-white p-8 rounded-xl shadow text-center text-gray-500">
+                    <img src="https://cdni.iconscout.com/illustration/premium/thumb/mosque-4468725-3728613.png" class="w-48 mx-auto opacity-50 mb-4" alt="Mosque">
+                    <p>Gunakan menu navigasi di samping untuk mengelola data.</p>
+                </div>
+            `;
+        }
+
+        function renderTable(container, entity, data, lookupMap = {}) {
+            const user = getUserSession();
+            // Cek apakah user berhak CRUD (Admin & Pengurus bisa semua. Guru mungkin hanya Read, atau CRUD sesuai kebijakan. Disini di set Admin/Pengurus bisa CRUD)
+            const canCRUD = user.role === 'admin' || user.role === 'pengurus';
+
+            let rows = '';
+            let theadHTML = '';
+
+            // Helper function untuk mengubah ID kembali menjadi Nama
+            const getReferenceName = (id, mapping) => (mapping && mapping[id]) ? mapping[id] : id;
+
+            if (entity === 'kelas') {
+                theadHTML = `
+                    <tr>
+                        <th class="px-4 py-3">No</th>
+                        <th class="px-4 py-3">ID Kelas</th>
+                        <th class="px-4 py-3">Nama Kelas</th>
+                        <th class="px-4 py-3">Jenjang</th>
+                        <th class="px-4 py-3">Wali Kelas</th>
+                        <th class="px-4 py-3">Kapasitas</th>
+                        <th class="px-4 py-3 text-right">Aksi</th>
+                    </tr>`;
+                data.forEach((item, index) => {
+                    // Mapping Array ID Wali ke Nama Lengkap Wali
+                    const wali = [item.waliKelas1, item.waliKelas2, item.waliKelas3]
+                                 .filter(Boolean)
+                                 .map(id => getReferenceName(id, lookupMap.guru))
+                                 .join(', ');
                     
-                    const statusClass = u.Status === 'Aktif' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
-                    const roleClass = u.Role === 'admin' ? 'bg-purple-100 text-purple-800 border border-purple-200' : 'bg-gray-100 text-gray-800 border border-gray-200';
-                    
-                    const isSelfAdmin = (u.Username === 'admin' && State.currentUser.username !== 'admin');
-                    
-                    const tr = document.createElement('tr');
-                    tr.className = "hover:bg-gray-50 transition-colors";
-                    tr.innerHTML = `
-                        <td class="px-6 py-4 text-sm font-medium text-gray-500">${u.ID_User}</td>
-                        <td class="px-6 py-4 font-bold text-gray-800 text-base">${u.Username}</td>
-                        <td class="px-6 py-4"><span class="px-2 py-1 inline-flex text-xs font-bold rounded-md ${roleClass} uppercase tracking-wider">${u.Role}</span></td>
-                        <td class="px-6 py-4"><span class="px-2 py-1 inline-flex text-xs font-bold rounded-full ${statusClass}">${u.Status}</span></td>
-                        <td class="px-6 py-4 text-center text-sm font-medium">
-                            <button onclick="UserController.edit('${u.ID_User}')" class="text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded transition" ${isSelfAdmin ? 'disabled class="text-gray-300 bg-gray-50"' : ''}>
-                                <i class="fas fa-user-edit"></i> Edit Akses
-                            </button>
+                    rows += `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm">${index + 1}</td>
+                        <td class="px-4 py-3 text-sm font-medium text-green-600">${item.id || '-'}</td>
+                        <td class="px-4 py-3 text-sm font-semibold">${item.namaKelas || '-'}</td>
+                        <td class="px-4 py-3 text-sm">${item.jenjang || '-'}</td>
+                        <td class="px-4 py-3 text-sm">${wali || '-'}</td>
+                        <td class="px-4 py-3 text-sm">${item.kapasitas || '-'}</td>
+                        <td class="px-4 py-3 text-sm text-right">
+                            ${canCRUD ? `<button onclick='openFormModal("${entity}", ${JSON.stringify(item).replace(/'/g, "&#39;")})' class="text-green-500 hover:text-green-700 mr-2" title="Edit"><i class="fas fa-edit"></i></button>` : ''}
+                            ${canCRUD ? `<button onclick='deleteData("${entity}", "${item.id}")' class="text-red-500 hover:text-red-700" title="Hapus"><i class="fas fa-trash"></i></button>` : ''}
                         </td>
-                    `;
-                    tbody.appendChild(tr);
+                    </tr>`;
                 });
-            },
-            edit(id) {
-                const data = State.users.find(u => u.ID_User === id);
-                if (data) {
-                    document.getElementById('U_ID_User').value = data.ID_User;
-                    document.getElementById('U_Username').value = data.Username;
-                    document.getElementById('U_Role').value = data.Role;
-                    document.getElementById('U_Status').value = data.Status;
-                    UI.openModal('modal-user');
-                }
-            },
-            async save() {
-                const data = {
-                    ID_User: document.getElementById('U_ID_User').value,
-                    Role: document.getElementById('U_Role').value,
-                    Status: document.getElementById('U_Status').value
-                };
-                
-                UI.setLoading('btn-save-user-text', 'btn-save-user-loader', true);
-                try {
-                    await API.post('updateUser', data);
-                    Swal.fire({ icon: 'success', title: 'Akses Diperbarui', text: 'Perubahan berhasil disimpan.', timer: 1500, showConfirmButton: false });
-                    UI.closeModal('modal-user');
-                    
-                    if(data.ID_User === State.currentUser.id && data.Status !== 'Aktif') {
-                        setTimeout(() => AuthController.logout(), 1500);
-                        return;
-                    }
-                    
-                    this.loadData();
-                } catch (error) {
-                    Swal.fire({ icon: 'error', title: 'Gagal Memperbarui', text: error.message });
-                } finally {
-                    UI.setLoading('btn-save-user-text', 'btn-save-user-loader', false, 'Simpan Perubahan');
-                }
+            } else if (entity === 'kamar') {
+                theadHTML = `
+                    <tr>
+                        <th class="px-4 py-3">No</th>
+                        <th class="px-4 py-3">ID Kamar</th>
+                        <th class="px-4 py-3">Nama Kamar</th>
+                        <th class="px-4 py-3">Gedung</th>
+                        <th class="px-4 py-3">Pembina / Musyrif</th>
+                        <th class="px-4 py-3">Kapasitas</th>
+                        <th class="px-4 py-3 text-right">Aksi</th>
+                    </tr>`;
+                data.forEach((item, index) => {
+                    // Mapping Array ID Musyrif ke Nama Lengkap Musyrif
+                    const musyrif = [item.pembina1, item.pembina2, item.pembina3]
+                                    .filter(Boolean)
+                                    .map(id => getReferenceName(id, lookupMap.guru))
+                                    .join(', ');
+
+                    rows += `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm">${index + 1}</td>
+                        <td class="px-4 py-3 text-sm font-medium text-green-600">${item.id || '-'}</td>
+                        <td class="px-4 py-3 text-sm font-semibold">${item.namaKamar || '-'}</td>
+                        <td class="px-4 py-3 text-sm">${item.gedung || '-'}</td>
+                        <td class="px-4 py-3 text-sm">${musyrif || '-'}</td>
+                        <td class="px-4 py-3 text-sm">${item.kapasitas || '-'}</td>
+                        <td class="px-4 py-3 text-sm text-right">
+                            ${canCRUD ? `<button onclick='openFormModal("${entity}", ${JSON.stringify(item).replace(/'/g, "&#39;")})' class="text-green-500 hover:text-green-700 mr-2" title="Edit"><i class="fas fa-edit"></i></button>` : ''}
+                            ${canCRUD ? `<button onclick='deleteData("${entity}", "${item.id}")' class="text-red-500 hover:text-red-700" title="Hapus"><i class="fas fa-trash"></i></button>` : ''}
+                        </td>
+                    </tr>`;
+                });
+            } else {
+                // Entitas Akun/User (Santri, Guru, dll)
+                theadHTML = `
+                    <tr>
+                        <th class="px-4 py-3">No</th>
+                        <th class="px-4 py-3">ID</th>
+                        <th class="px-4 py-3">Nama Lengkap</th>
+                        <th class="px-4 py-3">NIK</th>
+                        <th class="px-4 py-3">L/P</th>
+                        <th class="px-4 py-3 text-right">Aksi</th>
+                    </tr>`;
+                data.forEach((item, index) => {
+                    rows += `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm">${index + 1}</td>
+                        <td class="px-4 py-3 text-sm font-medium text-green-600">${item.id || '-'}</td>
+                        <td class="px-4 py-3 text-sm font-semibold">${item.namaLengkap || '-'}</td>
+                        <td class="px-4 py-3 text-sm">${item.nik || '-'}</td>
+                        <td class="px-4 py-3 text-sm">${item.jk || '-'}</td>
+                        <td class="px-4 py-3 text-sm text-right">
+                            ${canCRUD ? `<button onclick='openFormModal("${entity}", ${JSON.stringify(item).replace(/'/g, "&#39;")})' class="text-green-500 hover:text-green-700 mr-2" title="Edit"><i class="fas fa-edit"></i></button>` : ''}
+                            ${canCRUD ? `<button onclick='deleteData("${entity}", "${item.id}")' class="text-red-500 hover:text-red-700" title="Hapus"><i class="fas fa-trash"></i></button>` : ''}
+                        </td>
+                    </tr>`;
+                });
             }
-        };
 
-        const DashboardController = {
-            updateStats() {
-                document.getElementById('dash-count-santri').innerText = State.santri.length;
-                // Santri Aktif dihitung berdasarkan Status_Keaktifan di pondok
-                document.getElementById('dash-count-aktif').innerText = State.santri.filter(s => (s.Status_Keaktifan || 'Aktif') === 'Aktif').length;
-                document.getElementById('dash-count-users').innerText = State.users.length;
-            }
-        };
-
-        const UI = {
-            showLogin() {
-                document.getElementById('auth-view').classList.remove('hidden');
-                document.getElementById('app-view').classList.add('hidden');
-            },
-            showApp() {
-                document.getElementById('auth-view').classList.add('hidden');
-                document.getElementById('app-view').classList.remove('hidden');
-                
-                document.getElementById('user-display-name').innerText = State.currentUser.username;
-                document.getElementById('user-display-role').innerText = State.currentUser.role;
-                
-                if(State.isDemo) {
-                    document.getElementById('demo-badge').classList.remove('hidden');
-                    document.getElementById('demo-badge').classList.add('inline-flex');
-                } else {
-                    document.getElementById('demo-badge').classList.add('hidden');
-                }
-
-                this.enforceRoles();
-                this.navigate('dashboard');
-                
-                SantriController.loadData();
-                if(State.currentUser.role === 'admin') UserController.loadData();
-            },
-            enforceRoles() {
-                const role = State.currentUser ? State.currentUser.role : '';
-                
-                const adminElements = document.querySelectorAll('.admin-only');
-                adminElements.forEach(el => {
-                    if (role === 'admin') el.classList.remove('hidden');
-                    else el.classList.add('hidden');
-                });
-
-                const adminPengurusElements = document.querySelectorAll('.admin-pengurus-only');
-                adminPengurusElements.forEach(el => {
-                    if (role === 'admin' || role === 'pengurus') el.classList.remove('hidden');
-                    else el.classList.add('hidden');
-                });
-            },
-            navigate(page) {
-                document.querySelectorAll('.page-view').forEach(el => el.classList.add('hidden'));
-                document.querySelectorAll('nav a').forEach(el => {
-                    el.classList.remove('bg-emerald-50', 'text-primary');
-                    el.classList.add('text-gray-600');
-                });
-                
-                document.getElementById('page-' + page).classList.remove('hidden');
-                
-                const nav = document.getElementById('nav-' + page);
-                if(nav) {
-                    nav.classList.remove('text-gray-600');
-                    nav.classList.add('bg-emerald-50', 'text-primary');
-                }
-            },
-            openModal(id) { document.getElementById(id).classList.remove('hidden'); },
-            closeModal(id) { document.getElementById(id).classList.add('hidden'); },
-            setLoading(textId, loaderId, isLoading, originalText = '') {
-                const t = document.getElementById(textId);
-                const l = document.getElementById(loaderId);
-                if(isLoading) {
-                    t.innerText = 'Memproses...';
-                    l.classList.remove('hidden');
-                } else {
-                    t.innerText = originalText;
-                    l.classList.add('hidden');
-                }
-            },
-            showElement(id) { document.getElementById(id).classList.remove('hidden'); },
-            hideElement(id) { document.getElementById(id).classList.add('hidden'); }
-        };
-
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('login-form').addEventListener('submit', (e) => AuthController.login(e));
-            document.getElementById('register-form').addEventListener('submit', (e) => AuthController.register(e));
+            container.innerHTML = `
+                <div class="bg-white rounded-xl shadow overflow-hidden">
+                    <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+                        <div class="relative w-64">
+                            <input type="text" id="searchData" placeholder="Cari data..." class="w-full pl-10 pr-4 py-2 rounded-lg border text-sm focus:outline-none focus:ring-1 focus:ring-green-500">
+                            <i class="fas fa-search absolute left-3 top-2.5 text-gray-400"></i>
+                        </div>
+                        ${canCRUD ? 
+                        `<button onclick='openFormModal("${entity}")' class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium"><i class="fas fa-plus mr-2"></i>Tambah Data</button>` : ''}
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left whitespace-nowrap">
+                            <thead class="bg-gray-100 text-gray-600 text-xs uppercase font-semibold">
+                                ${theadHTML}
+                            </thead>
+                            <tbody>
+                                ${rows.length ? rows : `<tr><td colspan="7" class="text-center py-6 text-gray-500">Tidak ada data</td></tr>`}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
             
-            document.getElementById('link-to-register').addEventListener('click', (e) => {
-                e.preventDefault();
-                document.getElementById('login-form').classList.add('hidden');
-                document.getElementById('register-form').classList.remove('hidden');
+            // Simple Client-side search
+            document.getElementById('searchData')?.addEventListener('keyup', function(e) {
+                const term = e.target.value.toLowerCase();
+                const trs = container.querySelectorAll('tbody tr');
+                trs.forEach(tr => {
+                    const text = tr.innerText.toLowerCase();
+                    tr.style.display = text.includes(term) ? '' : 'none';
+                });
             });
-            document.getElementById('link-to-login').addEventListener('click', (e) => {
-                e.preventDefault();
-                document.getElementById('register-form').classList.add('hidden');
-                document.getElementById('login-form').classList.remove('hidden');
+        }
+
+        async function openFormModal(entity, data = null, inModal = true) {
+            const sections = entitySchemas[entity];
+            const isEdit = data !== null;
+            
+            // --- LOGIKA FETCH DATA GURU DINAMIS ---
+            let dynamicOptions = { guru: [] };
+            const needsGuru = sections.some(sec => sec.fields.some(f => f.dynamic === 'guru'));
+            
+            if (needsGuru) {
+                // Munculkan indikator loading di modal selama menarik data Guru
+                document.getElementById('modal-title').innerHTML = '<div class="flex items-center text-gray-600"><i class="fas fa-spinner fa-spin mr-3"></i> Menyiapkan Form...</div>';
+                document.getElementById('modal-body').innerHTML = '<div class="flex justify-center py-12"><div class="loader w-10 h-10 border-4 border-green-200 rounded-full"></div></div>';
+                document.getElementById('modal-container').classList.remove('hidden');
+                
+                const res = await apiRequest('get', { entity: 'guru' });
+                if (res.success) {
+                    // Mapping Object yang berisi 'value' (ID Guru) dan 'label' (Nama Lengkap)
+                    dynamicOptions.guru = res.data
+                        .filter(g => g.statusAkun === 'Aktif')
+                        .map(g => ({ value: g.id, label: g.namaLengkap }));
+                }
+            }
+            // --------------------------------------
+
+            let formHTML = `<form id="master-form" class="relative" onsubmit="saveData(event, '${entity}', '${isEdit ? data.id : ''}')">`;
+            formHTML += `<div class="space-y-6 pb-20">`; 
+            
+            sections.forEach(section => {
+                formHTML += `
+                <div class="bg-gray-50 p-5 rounded-xl border border-gray-200 shadow-sm">
+                    <h4 class="text-md font-bold text-gray-800 mb-4 flex items-center border-b pb-2">
+                        <i class="fas ${section.icon} text-green-600 mr-2 w-6 text-center"></i> ${section.title}
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">`;
+                
+                section.fields.forEach(field => {
+                    let val = isEdit ? (data[field.name] || '') : '';
+                    let reqStr = field.req ? 'required' : '';
+                    let labelReq = field.req ? '<span class="text-red-500 ml-1">*</span>' : '';
+                    
+                    formHTML += `<div class="mb-2">
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">${field.label} ${labelReq}</label>`;
+                    
+                    if (field.type === 'select') {
+                        // Persiapkan format array object untuk opsi dropdown
+                        let opts = [];
+                        if (field.dynamic) {
+                            opts = dynamicOptions[field.dynamic];
+                        } else if (field.options) {
+                            opts = field.options.map(o => ({value: o, label: o}));
+                        }
+
+                        // Set value select box sesuai value/ID (bukan label)
+                        formHTML += `<select name="${field.name}" ${reqStr} class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white shadow-sm transition outline-none">
+                            <option value="">-- Pilih --</option>
+                            ${(opts || []).map(o => `<option value="${o.value}" ${val === o.value ? 'selected' : ''}>${o.label}</option>`).join('')}
+                        </select>`;
+                    } else if (field.type === 'textarea') {
+                        formHTML += `<textarea name="${field.name}" ${reqStr} rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white shadow-sm transition outline-none">${val}</textarea>`;
+                    } else {
+                        let pat = field.pattern ? `pattern="${field.pattern}" title="Harus sesuai format"` : '';
+                        let typ = field.type === 'number' ? 'number' : 'text'; 
+                        if(field.name === 'nik' || field.name === 'noKk') typ = 'text'; 
+                        formHTML += `<input type="${typ}" name="${field.name}" value="${val}" ${reqStr} ${pat} class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white shadow-sm transition outline-none">`;
+                    }
+                    formHTML += `</div>`;
+                });
+                
+                formHTML += `</div></div>`;
+            });
+            
+            formHTML += `</div>
+                <div class="absolute bottom-0 left-0 w-full flex justify-end space-x-3 pt-4 border-t bg-white pb-1 z-10">
+                    <button type="button" onclick="closeModal()" class="px-5 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-semibold transition">Batal</button>
+                    <button type="submit" class="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold flex items-center transition shadow-md">
+                        <span id="save-text"><i class="fas fa-save mr-2"></i>Simpan Data</span>
+                        <div id="save-loader" class="hidden loader w-4 h-4 border-2 border-white rounded-full ml-2"></div>
+                    </button>
+                </div>
+            </form>`;
+
+            document.getElementById('modal-title').innerHTML = `
+                <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                        <i class="fas ${isEdit ? 'fa-edit text-green-600' : 'fa-plus text-green-600'}"></i>
+                    </div>
+                    <span class="capitalize">${isEdit ? 'Edit' : 'Tambah'} Data ${entity}</span>
+                </div>`;
+            
+            document.getElementById('modal-body').innerHTML = formHTML;
+            document.getElementById('modal-container').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-container').classList.add('hidden');
+        }
+
+        async function saveData(e, entity, id) {
+            e.preventDefault();
+            const btnText = document.getElementById('save-text');
+            const loader = document.getElementById('save-loader');
+            btnText.classList.add('hidden'); loader.classList.remove('hidden');
+
+            const formData = new FormData(e.target);
+            const dataObj = Object.fromEntries(formData.entries());
+
+            const res = await apiRequest('save', { entity, id: id || null, data: dataObj });
+            alert(res.message);
+            
+            if(res.success) {
+                closeModal();
+                // Refresh view
+                if(currentView === 'profile') {
+                    // Update session if editing self
+                    let user = getUserSession();
+                    setUserSession({...user, ...dataObj});
+                }
+                loadContent(currentView, entity);
+            }
+            btnText.classList.remove('hidden'); loader.classList.add('hidden');
+        }
+
+        async function deleteData(entity, id) {
+            if(confirm("Apakah Anda yakin ingin menghapus data ini?")) {
+                const res = await apiRequest('delete', { entity, id });
+                alert(res.message);
+                if(res.success) loadContent(currentView, entity);
+            }
+        }
+
+        async function renderUserManagement(container) {
+            const tables = ['admin', 'pengurus', 'guru', 'santri'];
+            let allUsers = [];
+            
+            if(IS_DEMO) {
+                tables.forEach(t => {
+                    dummyDB[t].forEach(u => allUsers.push({...u, roleAsli: t}));
+                });
+            } else {
+                // Fetch from GAS for all users
+                for(let t of tables) {
+                    const res = await apiRequest('get', {entity: t});
+                    if(res.data) res.data.forEach(u => allUsers.push({...u, roleAsli: t}));
+                }
+            }
+
+            let rows = '';
+            allUsers.forEach((item, index) => {
+                let badgeColor = item.statusAkun === 'Aktif' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+                rows += `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-4 py-3 text-sm">${item.id || '-'}</td>
+                    <td class="px-4 py-3 text-sm font-semibold">${item.namaLengkap}</td>
+                    <td class="px-4 py-3 text-sm capitalize">${item.roleAsli}</td>
+                    <td class="px-4 py-3 text-sm">
+                        <span class="px-2 py-1 text-xs rounded-full font-semibold ${badgeColor}">${item.statusAkun || 'Non Aktif'}</span>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-right">
+                        ${item.statusAkun === 'Aktif' 
+                            ? `<button onclick="toggleUserStatus('${item.roleAsli}', '${item.id}', 'Non Aktif')" class="px-3 py-1 bg-yellow-500 text-white rounded text-xs hover:bg-yellow-600">Non-aktifkan</button>`
+                            : `<button onclick="toggleUserStatus('${item.roleAsli}', '${item.id}', 'Aktif')" class="px-3 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600">Aktifkan</button>`
+                        }
+                    </td>
+                </tr>`;
             });
 
-            AuthController.init();
-        });
+            container.innerHTML = `
+                <div class="bg-white rounded-xl shadow overflow-hidden">
+                    <div class="p-4 border-b bg-gray-50">
+                        <h3 class="font-bold text-gray-700">Manajemen Status Akun & Akses</h3>
+                        <p class="text-xs text-gray-500">User yang mendaftar melalui form registrasi akan memiliki status 'Non Aktif' dan harus diaktifkan di sini.</p>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left whitespace-nowrap">
+                            <thead class="bg-gray-100 text-gray-600 text-xs uppercase font-semibold">
+                                <tr>
+                                    <th class="px-4 py-3">ID</th>
+                                    <th class="px-4 py-3">Nama Lengkap</th>
+                                    <th class="px-4 py-3">Role</th>
+                                    <th class="px-4 py-3">Status</th>
+                                    <th class="px-4 py-3 text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function toggleUserStatus(entity, id, newStatus) {
+            if(confirm(`Ubah status akun menjadi ${newStatus}?`)) {
+                const res = await apiRequest('updateStatus', { entity, id, status: newStatus });
+                if(res.success) loadContent('users', null);
+            }
+        }
+
+        // Initialize App
+        renderApp();
     </script>
 </body>
 </html>
